@@ -7,16 +7,20 @@ class DotNetChannelInfo {
     [ValidateNotNullOrEmpty()][string]$LatestRelease
     [DateTime]$LatestReleaseDate
     [ValidateNotNull()][Uri]$ReleasesJsonUri
+    [string]$SupportPhase
 
     DotNetChannelInfo(
         [string]$ChannelVersion,
         [string]$LatestRelease,
         [DateTime]$LatestReleaseDate,
-        [Uri]$ReleasesJsonUri) {
+        [Uri]$ReleasesJsonUri,
+        [string]$SupportPhase)
+    {
         $this.ChannelVersion = $ChannelVersion
         $this.LatestRelease = $LatestRelease
         $this.LatestReleaseDate = $LatestReleaseDate
         $this.ReleasesJsonUri = $ReleasesJsonUri
+        $this.SupportPhase = $SupportPhase
     }
 }
 
@@ -120,7 +124,10 @@ class DotNetFileInfo {
 
     To get a channel's releases, use the Get-DotnetReleaseInfo command.
 .PARAMETER ChannelVersion
-    Limits the result to channels of the specified version.    
+    Limits the result to channels of the specified version.
+    .PARAMETER SupportPhase
+    Limits the result to channels in the specified support phase.
+    Valid values are 'Preview', 'LTS', 'EOL' and 'Maintenance'.
 .EXAMPLE
     Get-DotNetReleaseChannel
 
@@ -134,7 +141,8 @@ function Get-DotNetReleaseChannel {
 
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $false)][string]$ChannelVersion
+        [Parameter(Mandatory = $false)][string]$ChannelVersion,
+        [Parameter(Mandatory = $false)][string][ValidateSet("Preview","EOL","LTS","Maintenance")]$SupportPhase
     )
 
     $response = Invoke-WebRequest -Uri $ReleaseIndexUri
@@ -146,11 +154,17 @@ function Get-DotNetReleaseChannel {
             $obj.'channel-version',
             $obj.'latest-release',
             [DateTime]::Parse($obj.'latest-release-date'),
-            $obj.'releases.json'
+            $obj.'releases.json',
+            $obj.'support-phase'
         )
 
         # Skip non-matching results when ChannelVersion version was set
         if ($ChannelVersion -and ($channelInfo.ChannelVersion -ne $ChannelVersion)) {
+            continue
+        }
+
+        # Skip non-matching results when SupportPhase version was set
+        if ($SupportPhase -and ($channelInfo.SupportPhase -ne $SupportPhase)) {
             continue
         }
 
@@ -238,7 +252,7 @@ function Get-DotNetReleaseInfo {
 
         function GetRuntimeReleaseInfo($thisReleaseVersion, $runtimeJsonObject) {
             Write-Verbose "Reading runtime info for version '$thisReleaseVersion'"
-            $version = $runtimeJsonObject.'version'            
+            $version = $runtimeJsonObject.'version'
             $runtimeFiles = GetFileInfos -packageType "Runtime" `
                 -version $version `
                 -thisReleaseVersion $thisReleaseVersion `
@@ -533,7 +547,7 @@ function Install-DotNet {
     param (
         [Parameter(Mandatory = $true, ParameterSetName = "FromReleaseVersion")]
         [Parameter(Mandatory = $true, ParameterSetName = "FromDotNetReleaseInfo")]
-        [ValidateSet("Runtime", "Sdk")] 
+        [ValidateSet("Runtime", "Sdk")]
         [string]$PackageType,
 
         [Parameter(Mandatory = $true, ParameterSetName = "FromReleaseVersion")][string]$ReleaseVersion,
@@ -547,7 +561,7 @@ function Install-DotNet {
 
 
     function GetRid {
-        # Determine runtime identifier for current OS        
+        # Determine runtime identifier for current OS
         $platform = [System.Environment]::OSVersion.Platform
         switch ($platform) {
             "Win32NT" {
@@ -584,12 +598,12 @@ function Install-DotNet {
                 -SdkVersion $SdkVersion `
                 -PackageType $PackageType `
                 -Extension "exe"
-            
+
         }
         "FromDotNetReleaseInfo" {
 
             switch ($PackageType) {
-                "Sdk" {                    
+                "Sdk" {
                     $_files = $ReleaseInfo.Sdk.Files `
                     | Where-Object -FilterScript { $PSItem.Extension -eq "exe" } `
                     | Where-Object -FilterScript { $PSItem.RuntimeIdentifier -eq $_runtimeIdentifier }
@@ -603,21 +617,21 @@ function Install-DotNet {
                     throw "Unexpected package type '$PackageType'"
                 }
             }
-        } 
+        }
         default {
             throw "Unexpected ParameterSetName '$($PsCmdlet.ParameterSetName)'"
         }
     }
 
     $_count = ($_files | Measure-Object).Count
-    
+
     if ($_count -eq 0) {
         throw "Failed to find a matching installer"
     }
     if ($_count -gt 1) {
         throw "Found multiple installers matching the specified criteria"
     }
-    
+
     if (Test-DotNetInstallation -PackageType $PackageType -Version $_files.Version) {
         throw ".NET $PackageType, version $($_files.Version) is already installed"
     }
@@ -644,7 +658,7 @@ function Install-DotNet {
     Silently runs the installer for a .NET Core package.
     When run without admin privileges, a UAC prompt will appear during installation.
 .PARAMETER InstallerPath
-    The file path of the installer to run.    
+    The file path of the installer to run.
 #>
 function Start-DotNetInstaller {
 
@@ -699,7 +713,7 @@ class DotNetInstallation {
 .PARAMETER PackageType
     Specifies which types of .NET Core installation to return.
     Valid values are "Runtime", "Sdk" and "All" (default)
-.EXAMPLE 
+.EXAMPLE
     Get-DotNetInstallation -PackageType "Runtime"
 
     Get all installed .NET Core runtimes
@@ -800,7 +814,7 @@ function Get-DotNetInstallation {
 }
 
 <#
-.SYNOPSIS 
+.SYNOPSIS
     Checks if a .NET Core installation exists
 .DESCRIPTION
     Tests whether a .NET Core runtime or SDK is installed.
@@ -812,14 +826,14 @@ function Get-DotNetInstallation {
 .EXAMPLE
     Test-DotNetInstallation -PackageType "Runtime"
 
-    Check if any .NET Core runtime is installed    
+    Check if any .NET Core runtime is installed
 .EXAMPLE
     Test-DotNetInstallation -PackageType "Sdk" -Version "3.1.200"
 
     Check if the .NET Core SDK 3.1.201 is installed
 #>
 function Test-DotNetInstallation {
-    
+
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $false)][ValidateSet("Runtime", "Sdk", "All")][string]$PackageType,

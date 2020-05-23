@@ -65,8 +65,8 @@ function generateCommandPage {
     $help = Get-Help -Name $command.Name
 
     function Get-ParameterHelp($parameterName) {
-        foreach($parameterHelp in $help.parameters.parameter) {
-            if($parameterHelp.name -eq $parameterName) {
+        foreach ($parameterHelp in $help.parameters.parameter) {
+            if ($parameterHelp.name -eq $parameterName) {
                 return $parameterHelp
             }
         }
@@ -92,6 +92,40 @@ function generateCommandPage {
         "" >> $outputPath
     }
 
+    if ($help.examples.example) {
+        
+        $exampleNumber = 1
+
+        "== Examples" >> $outputPath
+        "" >> $outputPath
+        foreach ($example in $help.examples.example) {
+            
+            $title = $example.title.Trim('-').Trim()
+            if (-not $title) {
+                $title = "Example $exampleNumber"
+            }
+            "=== $title" >> $outputPath
+            "" >> $outputPath
+
+            $description = ($example.remarks | Out-String).Trim()
+            if ($description) {
+                $description >> $outputPath
+                "" >> $outputPath
+            }
+
+            "[source,powershell]" >> $outputPath
+            "----" >> $outputPath
+            $example.code >> $outputPath
+            "----" >> $outputPath
+            "" >> $outputPath
+
+
+            $exampleNumber += 1 
+        }
+
+    }
+
+
     $parameterSetCount = ($command.ParameterSets | Measure-Object).Count
     $parameterCount = ($command.Parameters | Measure-Object).Count
     
@@ -111,7 +145,7 @@ function generateCommandPage {
                     "==== Parameter ``$($parameter.Name)``" >> $outputPath
                     "" >> $outputPath
                     $parameterHelp = Get-ParameterHelp $parameter.Name
-                    if($parameterHelp.description) {
+                    if ($parameterHelp.description) {
                         $parameterDescription = ($parameterHelp.description | Out-String).Trim()
                         $parameterDescription >> $outputPath
                         "" >> $outputPath
@@ -128,7 +162,7 @@ function generateCommandPage {
                 "" >> $outputPath
 
                 $parameterHelp = Get-ParameterHelp $parameter.Name
-                if($parameterHelp.description) {
+                if ($parameterHelp.description) {
                     $parameterDescription = ($parameterHelp.description | Out-String).Trim()
                     $parameterDescription >> $outputPath
                     "" >> $outputPath
@@ -136,6 +170,9 @@ function generateCommandPage {
             }
         }
     }
+
+
+   
 }
 
 

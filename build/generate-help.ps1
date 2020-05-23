@@ -1,5 +1,5 @@
 $moduleName = "DotNetReleasesPowershell"
-$modulePath = Join-Path $PSScriptRoot "../src/$moduleName/$moduleName.psm1"
+$modulePath = Join-Path $PSScriptRoot "../src/$moduleName.psm1"
 $outputDir = Join-Path $PSScriptRoot "../docs/commands/"
 
 
@@ -7,7 +7,7 @@ $commonParameters = @(
     "Debug",
     "ErrorAction",
     "ErrorVariable",
-    "InformationAction (",
+    "InformationAction",
     "InformationVariable",
     "OutVariable",
     "OutBuffer",
@@ -20,14 +20,14 @@ $commonParameters = @(
 #
 # Create ouput directory
 #
-if(-not (Test-Path $outputDir)) {
+if (-not (Test-Path $outputDir)) {
     New-Item -ItemType Directory -Path $outputDir > $null
 }
 
 #
 # (Re)load module
 #
-if(Get-Module $moduleName) {
+if (Get-Module $moduleName) {
     Remove-Module $moduleName
 }
 Import-Module $modulePath
@@ -47,12 +47,14 @@ function generateIndex {
     "= $ModuleName Commands" >> $outputPath
     "" >> $outputPath
 
-    foreach($command in $commands) {
+    foreach ($command in $commands) {
 
         "* link:$($command.Name).asc[$($command.Name)]" >> $outputPath
         "" >> $outputPath 
     }
 }
+
+
 
 function generateCommandPage {
 
@@ -66,29 +68,44 @@ function generateCommandPage {
     "= $($command.Name) Command" >> $outputPath
     "" >> $outputPath
 
+    $help = Get-Help -Name $command.Name
+
+    if ($help.Synopsis) {
+        $help.Synopsis >> $outputPath
+        "" >> $outputPath
+    }
+    $description = ($help.Description | Out-String).Trim()
+    if ($description) {
+        "== Description" >> $outputPath
+        "" >> $outputPath
+        $description >> $outputPath
+        "" >> $outputPath
+    }
+
     $parameterSetCount = ($command.ParameterSets | Measure-Object).Count
     $parameterCount = ($command.Parameters | Measure-Object).Count
     
-    if($parameterCount -gt 0) {
+    if ($parameterCount -gt 0) {
         "== Parameters" >> $outputPath
         "" >> $outputPath
         
-        if($parameterSetCount -gt 1) {
+        if ($parameterSetCount -gt 1) {
             
-            foreach($parameterSet in $command.ParameterSets) {
+            foreach ($parameterSet in $command.ParameterSets) {
                 "=== Parameter Set ``$($parameterSet.Name)``" >> $outputPath
                 "" >> $outputPath
-                foreach($parameter in $parameterSet.Parameters) {
-                    if($commonParameters -contains $parameter.Name) {
+                foreach ($parameter in $parameterSet.Parameters) {
+                    if ($commonParameters -contains $parameter.Name) {
                         continue
                     }
                     "==== Parameter ``$($parameter.Name)``" >> $outputPath
                     "" >> $outputPath
                 }
             }
-        } else {
-            foreach($parameter in $command.Parameters.Values) {
-                if($commonParameters -contains $parameter.Name) {
+        }
+        else {
+            foreach ($parameter in $command.Parameters.Values) {
+                if ($commonParameters -contains $parameter.Name) {
                     continue
                 }
                 "=== Parameter ``$($parameter.Name)``" >> $outputPath
@@ -101,7 +118,7 @@ function generateCommandPage {
 
 $commands = Get-Command -Module $moduleName
 generateIndex $commands
-foreach($command in $commands) {
+foreach ($command in $commands) {
     generateCommandPage $command
 }
 

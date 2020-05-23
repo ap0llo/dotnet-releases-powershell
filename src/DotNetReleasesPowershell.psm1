@@ -1,0 +1,1 @@
+. (Join-Path $PSScriptRoot "dotnet-install.ps1")

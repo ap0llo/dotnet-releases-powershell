@@ -133,9 +133,13 @@ class DotNetFileInfo {
 
     Get all .NET Core release channels
 .EXAMPLE
-    Get-DotNetReleaseChannel -ChannelVersion 3.1
+    Get-DotNetReleaseChannel -ChannelVersion "3.1"
 
     Get information for the .NET Core 3.1 release channel.
+.EXAMPLE 
+    Get-DotNetReleaseChannel -SupportPhase "LTS"
+
+    Get all "long-term support" release channels
 #>
 function Get-DotNetReleaseChannel {
 

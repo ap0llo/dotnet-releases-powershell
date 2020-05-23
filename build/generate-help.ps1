@@ -2,6 +2,7 @@ $moduleName = "DotNetReleasesPowershell"
 $modulePath = Join-Path $PSScriptRoot "../src/$moduleName.psm1"
 $outputDir = Join-Path $PSScriptRoot "../docs/commands/"
 
+$PSDefaultParameterValues = @{ '*:Encoding' = 'utf8' }
 
 $commonParameters = @(    
     "Debug",

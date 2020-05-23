@@ -150,7 +150,7 @@ function Get-DotNetReleaseChannel {
         )
 
         # Skip non-matching results when ChannelVersion version was set
-        if ($ChannelVersion -and ($channelInfo.ChannelVersion -eq $ChannelVersion)) {
+        if ($ChannelVersion -and ($channelInfo.ChannelVersion -ne $ChannelVersion)) {
             continue
         }
 

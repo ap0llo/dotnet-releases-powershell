@@ -1,0 +1,100 @@
+<#
+.SYNOPSIS
+    Downloads one or more .NET Core release files
+.DESCRIPTION
+    Get-DotNetFile downloads one or more .NET Core release files to the TEMP folder and returns the downloaded files as System.IO.FileInfo objects.
+.PARAMETER FileInfo
+    Specifies the file to download as file info object (as returned by Get-DotNetFileInfo).
+    Accepts value from pipeline.
+.PARAMETER ChannelVersion
+    Limit files to download to a .NET Core release channel.
+.PARAMETER ReleaseVersion
+    Limit files to download to a specific .NET Core release
+.PARAMETER SdkVersion
+    Limit files to download to the .NET Core release the specified version of the SDK belongs to.
+.PARAMETER PackageType
+    Limit files to download to either .NET Core Runtime or .NET Core SDK releases.
+    Valid values are 'Runtime', 'Sdk' or 'All' (default)
+.PARAMETER RuntimeIdentifier
+    Limit files to download to files for a specific operating system.
+.PARAMETER Extension
+    Limit files to download to files with a specific file extension.
+    E.g. Get the Windows installer files by limiting to 'exe'.
+.EXAMPLE
+    Get-DotNetFileInfo -SdkVersion 3.1.201 | Get-DotNetFile
+
+    Get files using Get-DotNetFileInfo and pass to Get-DotNetFile as pipeline parameter
+.EXAMPLE
+    Get-DotNetFile -ReleaseVersion "3.1.2" -PackageType "Runtime" -Extension "exe" -RuntimeIdentifier "win-x64"
+
+    Download the Windows 64bit installer of the .NET Core runtime 3.1.2
+#>
+function Get-DotNetFile {
+
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromFileInfo")][DotNetFileInfo[]]$FileInfo,
+
+        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )][string]$ChannelVersion,
+        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )][string]$ReleaseVersion,
+        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )][string]$SdkVersion,
+        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )][ValidateSet("Runtime", "Sdk", "All")] [string]$PackageType,
+        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )] [string]$RuntimeIdentifier,
+        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )] [string]$Extension
+    )
+
+    BEGIN {
+        $downloadDir = Join-Path ([System.IO.Path]::GetTempPath())  "dotnet-install_$([System.IO.Path]::GetRandomFileName())"
+        Write-Verbose "Creating root output directory at '$downloadDir'"
+        New-Item -ItemType Directory -Path $downloadDir | Out-Null
+    }
+    PROCESS {
+
+        if (-not $PackageType) {
+            $PackageType = "All"
+        }
+
+        if (-not $FileInfo) {
+            $FileInfo = Get-DotNetFileInfo -ChannelVersion $ChannelVersion `
+                -ReleaseVersion $ReleaseVersion `
+                -SdkVersion $SdkVersion `
+                -PackageType $PackageType `
+                -RuntimeIdentifier $RuntimeIdentifier `
+                -Extension $Extension
+        }
+
+        foreach ($file in $FileInfo) {
+            $versionDir = Join-Path $downloadDir $file.Version
+            if (-not (Test-Path $versionDir)) {
+                Write-Verbose "Creating output directory for version '$($file.Version)' at '$versionDir'"
+                New-Item -ItemType Directory -Path $versionDir | Out-Null
+            }
+
+            $ridDir = Join-Path $versionDir $file.RuntimeIdentifier
+            if (-not (Test-Path $ridDir)) {
+                Write-Verbose "Creating output directory for runtime identifider '$($file.VerRuntimeIdentifiersion)' at '$ridDir'"
+                New-Item -ItemType Directory -Path $ridDir | Out-Null
+            }
+
+            $outPath = Join-Path $ridDir $file.Name
+            if (Test-Path $outPath) {
+                throw "Output path '$outPath' already exists"
+            }
+            Write-Verbose "Downloading file '$($file.Name)' to '$outPath'"
+            Invoke-WebRequest -Uri $file.Url -OutFile $outPath
+
+            Write-Verbose "Verifying hash of downloaded file '$outPath'"
+            $hash = (Get-FileHash -Path $outPath -Algorithm SHA512).Hash.ToLower()
+            if ($hash -ne $file.Hash) {
+                throw "Verification of hash failed. Expected: '$($file.Hash)', actual '$hash' (file '$outPath')"
+            }
+            else {
+                Write-Verbose "Successfully verfified hash of '$outPath'"
+            }
+
+            # Pass downloaded file to pipeline
+            Get-Item -Path $outPath
+        }
+    }
+    END { }
+}

@@ -9,7 +9,7 @@ on:
     - docs/commands/*
 
 jobs:
-  build:
+  update-generated-files:
     runs-on: ubuntu-latest
     steps:
 
@@ -28,7 +28,7 @@ jobs:
       run: |-
         ./build/generate-singlefilemodule.ps1
 
-    - name: Commit and push if README.asc was updated
+    - name: Commit and push if files were updated
       run: |-
         git diff
         git config --global user.email "actions@github.com"

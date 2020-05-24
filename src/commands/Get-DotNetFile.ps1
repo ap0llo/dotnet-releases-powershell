@@ -8,6 +8,9 @@
     Accepts value from pipeline.
 .PARAMETER ChannelVersion
     Limit files to download to a .NET Core release channel.
+.PARAMETER ReleaseInfo
+    Specifies the files to download as release info object (as returned by Get-DotNetFileReleaseInfo).
+    Accepts value from pipeline.
 .PARAMETER ReleaseVersion
     Limit files to download to a specific .NET Core release
 .PARAMETER SdkVersion
@@ -30,24 +33,40 @@
     Download the Windows 64bit installer of the .NET Core runtime 3.1.2
 .EXAMPLE
     Get-DotNetFile
-    
+
     Download all files from all .NET Core releases.
 #>
 function Get-DotNetFile {
 
-    #TODO: Add "ReleaseInfo" parameter 
     #TODO: Add "CannelInfo" parameter
 
     [CmdletBinding(DefaultParameterSetName = "FromFileInfo")]
     param (
-        [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromFileInfo")][DotNetFileInfo[]]$FileInfo,
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromFileInfo")]
+        [DotNetFileInfo[]]$FileInfo,
 
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )][string]$ChannelVersion,
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )][string]$ReleaseVersion,
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )][string]$SdkVersion,
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )][ValidateSet("Runtime", "Sdk", "All")] [string]$PackageType,
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )] [string]$RuntimeIdentifier,
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )] [string]$Extension
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromReleaseInfo")]
+        [DotNetReleaseInfo[]]$ReleaseInfo,
+
+        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [string]$ChannelVersion,
+        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [string]$ReleaseVersion,
+        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [string]$SdkVersion,
+        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [ValidateSet("Runtime", "Sdk", "All")]
+        [string]$PackageType,
+        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [string]$RuntimeIdentifier,
+        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [string]$Extension
     )
 
     BEGIN {
@@ -75,6 +94,15 @@ function Get-DotNetFile {
                     -RuntimeIdentifier $RuntimeIdentifier `
                     -Extension $Extension
             }
+            "FromReleaseInfo" {
+                $FileInfo = Get-DotNetFileInfo `
+                    -ReleaseInfo $ReleaseInfo `
+                    -ReleaseVersion $ReleaseVersion `
+                    -SdkVersion $SdkVersion `
+                    -PackageType $PackageType `
+                    -RuntimeIdentifier $RuntimeIdentifier `
+                    -Extension $Extension
+            }
             default {
                 throw "Unexpected ParameterSetName '$($PsCmdlet.ParameterSetName)'"
             }
@@ -88,7 +116,7 @@ function Get-DotNetFile {
 
             $progressActivity = "Downloading Files"
             $progessStepText = "Downloading $($file.Name), version $($file.Version)"
-            $progressStatusText = "File $(($completedFileCount + 1).ToString().PadLeft($totalFileCount.Count.ToString().Length)) of $totalFileCount | $progessStepText"                        
+            $progressStatusText = "File $(($completedFileCount + 1).ToString().PadLeft($totalFileCount.Count.ToString().Length)) of $totalFileCount | $progessStepText"
             $progressPercentComplete = ($completedFileCount / $totalFileCount * 100)
             Write-Progress -Id 1 `
                 -Activity $progressActivity `
@@ -116,13 +144,13 @@ function Get-DotNetFile {
             Write-Verbose "Downloading file '$($file.Name)' to '$outPath'"
             Invoke-WebRequest -Uri $file.Url -OutFile $outPath
 
-            
+
             Write-Progress -Id 1 `
                 -Activity $progressActivity `
                 -Status $progressStatusText `
                 -PercentComplete $progressPercentComplete `
                 -CurrentOperation "Verifiyng hash"
-            
+
             Write-Verbose "Verifying hash of downloaded file '$outPath'"
             $hash = (Get-FileHash -Path $outPath -Algorithm SHA512).Hash.ToLower()
             if ($hash -ne $file.Hash) {
@@ -133,7 +161,7 @@ function Get-DotNetFile {
             }
             # Pass downloaded file to pipeline
             Get-Item -Path $outPath
-                        
+
             $completedFileCount += 1
         }
     }

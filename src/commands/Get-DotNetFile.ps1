@@ -28,10 +28,17 @@
     Get-DotNetFile -ReleaseVersion "3.1.2" -PackageType "Runtime" -Extension "exe" -RuntimeIdentifier "win-x64"
 
     Download the Windows 64bit installer of the .NET Core runtime 3.1.2
+.EXAMPLE
+    Get-DotNetFile
+    
+    Download all files from all .NET Core releases.
 #>
 function Get-DotNetFile {
 
-    [CmdletBinding()]
+    #TODO: Add "ReleaseInfo" parameter 
+    #TODO: Add "CannelInfo" parameter
+
+    [CmdletBinding(DefaultParameterSetName = "FromFileInfo")]
     param (
         [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromFileInfo")][DotNetFileInfo[]]$FileInfo,
 
@@ -49,19 +56,30 @@ function Get-DotNetFile {
         New-Item -ItemType Directory -Path $downloadDir | Out-Null
     }
     PROCESS {
-
         if (-not $PackageType) {
             $PackageType = "All"
         }
 
-        if (-not $FileInfo) {
-            $FileInfo = Get-DotNetFileInfo -ChannelVersion $ChannelVersion `
-                -ReleaseVersion $ReleaseVersion `
-                -SdkVersion $SdkVersion `
-                -PackageType $PackageType `
-                -RuntimeIdentifier $RuntimeIdentifier `
-                -Extension $Extension
+        switch ($PsCmdlet.ParameterSetName) {
+            "FromFileInfo" {
+                if (-not $FileInfo) {
+                    $FileInfo = Get-DotNetFileInfo
+                }
+            }
+            "FromQueryParameters" {
+                $FileInfo = Get-DotNetFileInfo `
+                    -ChannelVersion $ChannelVersion `
+                    -ReleaseVersion $ReleaseVersion `
+                    -SdkVersion $SdkVersion `
+                    -PackageType $PackageType `
+                    -RuntimeIdentifier $RuntimeIdentifier `
+                    -Extension $Extension
+            }
+            default {
+                throw "Unexpected ParameterSetName '$($PsCmdlet.ParameterSetName)'"
+            }
         }
+
 
         $totalFileCount = ($FileInfo | Measure-Object).Count
         $completedFileCount = 0

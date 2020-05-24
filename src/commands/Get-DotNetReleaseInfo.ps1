@@ -31,9 +31,7 @@
 #>
 function Get-DotNetReleaseInfo {
 
-    #TODO: Allow calling without any parameters
-
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = "FromChannelInfo")]
     param (
         [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromChannelInfo")]
         [ValidateNotNull()]
@@ -103,8 +101,18 @@ function Get-DotNetReleaseInfo {
             )
         }
 
-        if (-not $Channel) {
-            $Channel = Get-DotNetReleaseChannel -ChannelVersion $ChannelVersion
+        switch ($PsCmdlet.ParameterSetName) {
+            "FromChannelInfo" {
+                if (-not $Channel) {
+                    $Channel = Get-DotNetReleaseChannel
+                }
+            }
+            "FromChannelVersion" {
+                $Channel = Get-DotNetReleaseChannel -ChannelVersion $ChannelVersion
+            }
+            default {
+                throw "Unexpected ParameterSetName '$($PsCmdlet.ParameterSetName)'"
+            }
         }
 
         foreach ($channelInfo in $Channel) {

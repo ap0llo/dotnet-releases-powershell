@@ -173,6 +173,9 @@ class DotNetInstallation {
     Accepts value from pipeline.
 .PARAMETER ChannelVersion
     Limit files to download to a .NET Core release channel.
+.PARAMETER ReleaseInfo
+    Specifies the files to download as release info object (as returned by Get-DotNetFileReleaseInfo).
+    Accepts value from pipeline.
 .PARAMETER ReleaseVersion
     Limit files to download to a specific .NET Core release
 .PARAMETER SdkVersion
@@ -193,19 +196,48 @@ class DotNetInstallation {
     Get-DotNetFile -ReleaseVersion "3.1.2" -PackageType "Runtime" -Extension "exe" -RuntimeIdentifier "win-x64"
 
     Download the Windows 64bit installer of the .NET Core runtime 3.1.2
+.EXAMPLE
+    Get-DotNetFile
+
+    Download all files from all .NET Core releases.
 #>
 function Get-DotNetFile {
 
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = "FromFileInfo")]
     param (
-        [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromFileInfo")][DotNetFileInfo[]]$FileInfo,
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromFileInfo")]
+        [DotNetFileInfo[]]$FileInfo,
 
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )][string]$ChannelVersion,
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )][string]$ReleaseVersion,
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )][string]$SdkVersion,
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )][ValidateSet("Runtime", "Sdk", "All")] [string]$PackageType,
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )] [string]$RuntimeIdentifier,
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )] [string]$Extension
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromReleaseInfo")]
+        [DotNetReleaseInfo[]]$ReleaseInfo,
+
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromChannelInfo")]
+        [DotNetChannelInfo[]] $Channel,
+
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelVersion" )]
+        [string]$ChannelVersion,
+
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelVersion" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelInfo" )]
+        [string]$ReleaseVersion,
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelVersion" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelInfo" )]
+        [string]$SdkVersion,
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelVersion" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelInfo" )]
+        [ValidateSet("Runtime", "Sdk", "All")]
+        [string]$PackageType,
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelVersion" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelInfo" )]
+        [string]$RuntimeIdentifier,
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelVersion" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelInfo" )]
+        [string]$Extension
     )
 
     BEGIN {
@@ -214,21 +246,65 @@ function Get-DotNetFile {
         New-Item -ItemType Directory -Path $downloadDir | Out-Null
     }
     PROCESS {
-
         if (-not $PackageType) {
             $PackageType = "All"
         }
 
-        if (-not $FileInfo) {
-            $FileInfo = Get-DotNetFileInfo -ChannelVersion $ChannelVersion `
-                -ReleaseVersion $ReleaseVersion `
-                -SdkVersion $SdkVersion `
-                -PackageType $PackageType `
-                -RuntimeIdentifier $RuntimeIdentifier `
-                -Extension $Extension
+        switch ($PsCmdlet.ParameterSetName) {
+            "FromFileInfo" {
+                if (-not $FileInfo) {
+                    $FileInfo = Get-DotNetFileInfo
+                }
+            }
+            "FromChannelVersion" {
+                $FileInfo = Get-DotNetFileInfo `
+                    -ChannelVersion $ChannelVersion `
+                    -ReleaseVersion $ReleaseVersion `
+                    -SdkVersion $SdkVersion `
+                    -PackageType $PackageType `
+                    -RuntimeIdentifier $RuntimeIdentifier `
+                    -Extension $Extension
+            }
+            "FromChannelInfo" {
+                $FileInfo = Get-DotNetFileInfo `
+                    -Channel $Channel `
+                    -ReleaseVersion $ReleaseVersion `
+                    -SdkVersion $SdkVersion `
+                    -PackageType $PackageType `
+                    -RuntimeIdentifier $RuntimeIdentifier `
+                    -Extension $Extension
+            }
+            "FromReleaseInfo" {
+                $FileInfo = Get-DotNetFileInfo `
+                    -ReleaseInfo $ReleaseInfo `
+                    -ReleaseVersion $ReleaseVersion `
+                    -SdkVersion $SdkVersion `
+                    -PackageType $PackageType `
+                    -RuntimeIdentifier $RuntimeIdentifier `
+                    -Extension $Extension
+            }
+            default {
+                throw "Unexpected ParameterSetName '$($PsCmdlet.ParameterSetName)'"
+            }
         }
 
+
+        $totalFileCount = ($FileInfo | Measure-Object).Count
+        $completedFileCount = 0
+
         foreach ($file in $FileInfo) {
+
+            $progressActivity = "Downloading Files"
+            $progessStepText = "Downloading $($file.Name), version $($file.Version)"
+            $progressStatusText = "File $(($completedFileCount + 1).ToString().PadLeft($totalFileCount.Count.ToString().Length)) of $totalFileCount | $progessStepText"
+            $progressPercentComplete = ($completedFileCount / $totalFileCount * 100)
+            Write-Progress -Id 1 `
+                -Activity $progressActivity `
+                -Status $progressStatusText `
+                -PercentComplete $progressPercentComplete `
+                -CurrentOperation "Downloading file"
+
+
             $versionDir = Join-Path $downloadDir $file.Version
             if (-not (Test-Path $versionDir)) {
                 Write-Verbose "Creating output directory for version '$($file.Version)' at '$versionDir'"
@@ -237,7 +313,7 @@ function Get-DotNetFile {
 
             $ridDir = Join-Path $versionDir $file.RuntimeIdentifier
             if (-not (Test-Path $ridDir)) {
-                Write-Verbose "Creating output directory for runtime identifider '$($file.VerRuntimeIdentifiersion)' at '$ridDir'"
+                Write-Verbose "Creating output directory for runtime identifier '$($file.RuntimeIdentifier)' at '$ridDir'"
                 New-Item -ItemType Directory -Path $ridDir | Out-Null
             }
 
@@ -248,6 +324,13 @@ function Get-DotNetFile {
             Write-Verbose "Downloading file '$($file.Name)' to '$outPath'"
             Invoke-WebRequest -Uri $file.Url -OutFile $outPath
 
+
+            Write-Progress -Id 1 `
+                -Activity $progressActivity `
+                -Status $progressStatusText `
+                -PercentComplete $progressPercentComplete `
+                -CurrentOperation "Verifiyng hash"
+
             Write-Verbose "Verifying hash of downloaded file '$outPath'"
             $hash = (Get-FileHash -Path $outPath -Algorithm SHA512).Hash.ToLower()
             if ($hash -ne $file.Hash) {
@@ -256,9 +339,10 @@ function Get-DotNetFile {
             else {
                 Write-Verbose "Successfully verfified hash of '$outPath'"
             }
-
             # Pass downloaded file to pipeline
             Get-Item -Path $outPath
+
+            $completedFileCount += 1
         }
     }
     END { }
@@ -280,8 +364,14 @@ function Get-DotNetFile {
     Each .NET Core release includes one or more files (e.g. installers for the runtime or the SDK).
     The Get-DotNetFileInfo retrieves information about one or more files based on the specified criteria.
     When no critieria are specified, all files from all .NET Core releases are returned.
+.PARAMETER Channel
+    Limit releases to a release channel (Use Get-DotNetReleaseChannel command to get a release channel).
+    Channel parameter can be taken from the pipeline.
 .PARAMETER ChannelVersion
     Limit files to a .NET Core release channel
+.PARAMETER ReleaseInfo
+    Specifies the files to get information on as release info object (as returned by Get-DotNetFileReleaseInfo).
+    Accepts value from pipeline.
 .PARAMETER ReleaseVersion
     Limit results to a specific .NET Core relrease
 .PARAMETER SdkVersion
@@ -302,55 +392,114 @@ function Get-DotNetFile {
     Get-DotnetFileInfo -SdkVersion "3.1.201" -PackageType "Sdk" -RuntimeIdentifier "win-x64"
 
     Get all .NET Core SDK files of SDK version 3.1.201 for 64bit Windows
+.EXAMPLE
+    Get-DotNetReleaseChannel -Channel 2.1 | Get-DotNetFileInfo
+
+    Get all files for all releases in a  channel using the pipeline
+.EXAMPLE
+    Get-DotNetFileInfo
+
+    Get information about all files for all releases
 #>
 function Get-DotNetFileInfo {
 
-    # TODO: Add 'Channel' Parameter
-
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = "FromChannelInfo")]
     param (
-        [Parameter(Mandatory = $false)][string]$ChannelVersion,
-        [Parameter(Mandatory = $false)][string]$ReleaseVersion,
-        [Parameter(Mandatory = $false)][string]$SdkVersion,
-        [Parameter(Mandatory = $false)][ValidateSet("Runtime", "Sdk", "All")] [string]$PackageType,
-        [Parameter(Mandatory = $false)] [string]$RuntimeIdentifier,
-        [Parameter(Mandatory = $false)] [string]$Extension
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromChannelInfo")]
+        [DotNetChannelInfo[]] $Channel,
+
+        [Parameter(Mandatory = $false, ParameterSetName = "FromChannelVersion")]
+        [string]$ChannelVersion,
+
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromReleaseInfo")]
+        [DotNetReleaseInfo[]]$ReleaseInfo,
+
+        [Parameter(Mandatory = $false, ParameterSetName = "FromChannelVersion")]
+        [Parameter(Mandatory = $false, ParameterSetName = "FromChannelInfo")]
+        [Parameter(Mandatory = $false, ParameterSetName = "FromReleaseInfo")]
+        [string]$ReleaseVersion,
+        [Parameter(Mandatory = $false, ParameterSetName = "FromChannelVersion")]
+        [Parameter(Mandatory = $false, ParameterSetName = "FromChannelInfo")]
+        [Parameter(Mandatory = $false, ParameterSetName = "FromReleaseInfo")]
+        [string]$SdkVersion,
+        [Parameter(Mandatory = $false, ParameterSetName = "FromChannelVersion")]
+        [Parameter(Mandatory = $false, ParameterSetName = "FromChannelInfo")]
+        [Parameter(Mandatory = $false, ParameterSetName = "FromReleaseInfo")]
+        [string]$PackageType,
+        [Parameter(Mandatory = $false, ParameterSetName = "FromChannelVersion")]
+        [Parameter(Mandatory = $false, ParameterSetName = "FromChannelInfo")]
+        [Parameter(Mandatory = $false, ParameterSetName = "FromReleaseInfo")]
+        [string]$RuntimeIdentifier,
+        [Parameter(Mandatory = $false, ParameterSetName = "FromChannelVersion")]
+        [Parameter(Mandatory = $false, ParameterSetName = "FromChannelInfo")]
+        [Parameter(Mandatory = $false, ParameterSetName = "FromReleaseInfo")]
+        [string]$Extension
     )
 
-    # When no PackageType is set, default to "All"
-    if (-not $PackageType) {
-        $PackageType = "All"
+    BEGIN { }
+    PROCESS {
+
+        # When no PackageType is set, default to "All"
+        if (-not $PackageType) {
+            $PackageType = "All"
+        }
+
+        switch ($PsCmdlet.ParameterSetName) {
+            "FromChannelInfo" {
+                if (-not $Channel) {
+                    $Channel = Get-DotNetReleaseChannel
+                }
+                $ReleaseInfo = @()
+                foreach ($channelInfo in $Channel) {
+                    $ReleaseInfo += ($channelInfo | Get-DotNetReleaseInfo -ReleaseVersion $ReleaseVersion -SdkVersion $SdkVersion)
+                }
+            }
+            "FromChannelVersion" {
+                $Channel = Get-DotNetReleaseChannel -ChannelVersion $ChannelVersion
+                $ReleaseInfo = @()
+                foreach ($channelInfo in $Channel) {
+                    $ReleaseInfo += ($channelInfo | Get-DotNetReleaseInfo -ReleaseVersion $ReleaseVersion -SdkVersion $SdkVersion)
+                }
+            }
+            "FromReleaseInfo" {
+                if (-not $ReleaseInfo) {
+                    $ReleaseInfo = Get-DotNetReleaseInfo `
+                        -ReleaseVersion $ReleaseVersion `
+                        -SdkVersion $SdkVersion
+                }
+            }
+            default {
+                throw "Unexpected ParameterSetName '$($PsCmdlet.ParameterSetName)'"
+            }
+        }
+
+
+        # Get files from release infos
+        $files = @()
+        # Include Runtime files
+        $files += @($ReleaseInfo | Select-Object -ExpandProperty Runtime | Select-Object -ExpandProperty Files)
+        # Include SDK files
+        $files += @($ReleaseInfo | Select-Object -ExpandProperty Sdk | Select-Object -ExpandProperty Files)
+
+        # When set, filter files based on package type
+        if ($PackageType -ne "all") {
+            $files = $files | Where-Object -FilterScript { $PSItem.PackageType -eq $PackageType }
+        }
+
+        # when specified, filter files by runtime identifier
+        if ($RuntimeIdentifier) {
+            $files = $files | Where-Object -FilterScript { $PSItem.RuntimeIdentifier -eq $RuntimeIdentifier }
+        }
+
+        # when specified, filter files by file extension
+        if ($Extension) {
+            $files = $files | Where-Object -FilterScript { $PSItem.Extension -eq $Extension }
+        }
+
+        # Return value to pipeline
+        $files
     }
-
-    # Get channel (pass in ChannelVersion to limit result)
-    $channelInfo = Get-DotNetReleaseChannel -ChannelVersion $ChannelVersion
-
-    # Get all release infos for all channels
-    $releaseInfos = $channelInfo | Get-DotNetReleaseInfo -ReleaseVersion $ReleaseVersion -SdkVersion $SdkVersion
-
-    # Get files from release infos
-    $files = @()
-    # Include Runtime files
-    $files += @($releaseInfos | Select-Object -ExpandProperty Runtime | Select-Object -ExpandProperty Files)
-    # Include SDK files
-    $files += @($releaseInfos | Select-Object -ExpandProperty Sdk | Select-Object -ExpandProperty Files)
-
-    # When set, filter files based on package type
-    if ($PackageType -ne "all") {
-        $files = $files | Where-Object -FilterScript { $PSItem.PackageType -eq $PackageType }
-    }
-
-    # when specified, filter files by runtime identifier
-    if ($RuntimeIdentifier) {
-        $files = $files | Where-Object -FilterScript { $PSItem.RuntimeIdentifier -eq $RuntimeIdentifier }
-    }
-
-    # when specified, filter files by file extension
-    if ($Extension) {
-        $files = $files | Where-Object -FilterScript { $PSItem.Extension -eq $Extension }
-    }
-
-    return $files
+    END { }
 }
 
 # --------------------------------------------------
@@ -583,9 +732,7 @@ function Get-DotNetReleaseChannel {
 #>
 function Get-DotNetReleaseInfo {
 
-    #TODO: Allow calling without any parameters
-
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = "FromChannelInfo")]
     param (
         [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromChannelInfo")]
         [ValidateNotNull()]
@@ -655,8 +802,18 @@ function Get-DotNetReleaseInfo {
             )
         }
 
-        if (-not $Channel) {
-            $Channel = Get-DotNetReleaseChannel -ChannelVersion $ChannelVersion
+        switch ($PsCmdlet.ParameterSetName) {
+            "FromChannelInfo" {
+                if (-not $Channel) {
+                    $Channel = Get-DotNetReleaseChannel
+                }
+            }
+            "FromChannelVersion" {
+                $Channel = Get-DotNetReleaseChannel -ChannelVersion $ChannelVersion
+            }
+            default {
+                throw "Unexpected ParameterSetName '$($PsCmdlet.ParameterSetName)'"
+            }
         }
 
         foreach ($channelInfo in $Channel) {

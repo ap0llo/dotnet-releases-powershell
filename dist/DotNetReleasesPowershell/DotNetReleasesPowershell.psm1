@@ -425,6 +425,7 @@ function Get-DotNetFileInfo {
         [Parameter(Mandatory = $false, ParameterSetName = "FromChannelVersion")]
         [Parameter(Mandatory = $false, ParameterSetName = "FromChannelInfo")]
         [Parameter(Mandatory = $false, ParameterSetName = "FromReleaseInfo")]
+        [ValidateSet("Runtime", "Sdk", "All")]
         [string]$PackageType,
         [Parameter(Mandatory = $false, ParameterSetName = "FromChannelVersion")]
         [Parameter(Mandatory = $false, ParameterSetName = "FromChannelInfo")]
@@ -482,7 +483,7 @@ function Get-DotNetFileInfo {
         $files += @($ReleaseInfo | Select-Object -ExpandProperty Sdk | Select-Object -ExpandProperty Files)
 
         # When set, filter files based on package type
-        if ($PackageType -ne "all") {
+        if ($PackageType -ne "All") {
             $files = $files | Where-Object -FilterScript { $PSItem.PackageType -eq $PackageType }
         }
 

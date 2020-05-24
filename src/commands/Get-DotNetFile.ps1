@@ -38,8 +38,6 @@
 #>
 function Get-DotNetFile {
 
-    #TODO: Add "CannelInfo" parameter
-
     [CmdletBinding(DefaultParameterSetName = "FromFileInfo")]
     param (
         [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromFileInfo")]
@@ -48,24 +46,32 @@ function Get-DotNetFile {
         [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromReleaseInfo")]
         [DotNetReleaseInfo[]]$ReleaseInfo,
 
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )]
-        [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromChannelInfo")]
+        [DotNetChannelInfo[]] $Channel,
+
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelVersion" )]
         [string]$ChannelVersion,
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )]
+
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelVersion" )]
         [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelInfo" )]
         [string]$ReleaseVersion,
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelVersion" )]
         [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelInfo" )]
         [string]$SdkVersion,
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelVersion" )]
         [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelInfo" )]
         [ValidateSet("Runtime", "Sdk", "All")]
         [string]$PackageType,
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelVersion" )]
         [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelInfo" )]
         [string]$RuntimeIdentifier,
-        [Parameter( Mandatory = $false, ParameterSetName = "FromQueryParameters" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelVersion" )]
         [Parameter( Mandatory = $false, ParameterSetName = "FromReleaseInfo" )]
+        [Parameter( Mandatory = $false, ParameterSetName = "FromChannelInfo" )]
         [string]$Extension
     )
 
@@ -85,9 +91,18 @@ function Get-DotNetFile {
                     $FileInfo = Get-DotNetFileInfo
                 }
             }
-            "FromQueryParameters" {
+            "FromChannelVersion" {
                 $FileInfo = Get-DotNetFileInfo `
                     -ChannelVersion $ChannelVersion `
+                    -ReleaseVersion $ReleaseVersion `
+                    -SdkVersion $SdkVersion `
+                    -PackageType $PackageType `
+                    -RuntimeIdentifier $RuntimeIdentifier `
+                    -Extension $Extension
+            }
+            "FromChannelInfo" {
+                $FileInfo = Get-DotNetFileInfo `
+                    -Channel $Channel `
                     -ReleaseVersion $ReleaseVersion `
                     -SdkVersion $SdkVersion `
                     -PackageType $PackageType `

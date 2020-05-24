@@ -741,7 +741,6 @@ function Get-DotNetReleaseInfo {
     [CmdletBinding(DefaultParameterSetName = "FromChannelInfo")]
     param (
         [Parameter(Mandatory = $false, ValueFromPipeline = $true, ParameterSetName = "FromChannelInfo")]
-        [ValidateNotNull()]
         [DotNetChannelInfo[]] $Channel,
 
         [Parameter(Mandatory = $false, ParameterSetName = "FromChannelVersion")]

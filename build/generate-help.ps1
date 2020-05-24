@@ -60,7 +60,7 @@ function generateIndex {
         $content += ""
     }
 
-    [System.IO.File]::WriteAllLines($outputPath,$content)
+    [System.IO.File]::WriteAllLines($outputPath, $content)
 }
 
 
@@ -187,7 +187,7 @@ function generateCommandPage {
         }
     }
 
-    [System.IO.File]::WriteAllLines($outputPath,$content)
+    [System.IO.File]::WriteAllLines($outputPath, $content)
 }
 
 

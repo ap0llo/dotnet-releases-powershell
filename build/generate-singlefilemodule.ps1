@@ -6,7 +6,7 @@
 $moduleName = "DotNetReleasesPowershell"
 $outputDir = Join-Path $PSScriptRoot "../dist/$moduleName"
 
-if(-not (Test-Path $outputDir)) {
+if (-not (Test-Path $outputDir)) {
     New-Item -ItemType Directory -Path $outputDir > $null
 }
 
@@ -42,14 +42,14 @@ function GetAppendableContent($path) {
 }
 
 
-$srcRoot =  Join-Path $PSScriptRoot "../src"
+$srcRoot = Join-Path $PSScriptRoot "../src"
 
 $content += GetAppendableContent (Join-Path $srcRoot "variables.ps1")
 $content += GetAppendableContent (Join-Path $srcRoot "model.ps1")
 
 $commandFiles = Get-ChildItem -Path (Join-Path $srcRoot "commands") -Filter "*.ps1"
-foreach($file in $commandFiles) {
+foreach ($file in $commandFiles) {
     $content += GetAppendableContent $file.FullName
 }
 
-[System.IO.File]::WriteAllLines($outputPath,$content)
+[System.IO.File]::WriteAllLines($outputPath, $content)

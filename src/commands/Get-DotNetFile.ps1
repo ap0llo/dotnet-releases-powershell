@@ -63,7 +63,22 @@ function Get-DotNetFile {
                 -Extension $Extension
         }
 
+        $totalFileCount = ($FileInfo | Measure-Object).Count
+        $completedFileCount = 0
+
         foreach ($file in $FileInfo) {
+
+            $progressActivity = "Downloading Files"
+            $progessStepText = "Downloading $($file.Name), version $($file.Version)"
+            $progressStatusText = "File $(($completedFileCount + 1).ToString().PadLeft($totalFileCount.Count.ToString().Length)) of $totalFileCount | $progessStepText"                        
+            $progressPercentComplete = ($completedFileCount / $totalFileCount * 100)
+            Write-Progress -Id 1 `
+                -Activity $progressActivity `
+                -Status $progressStatusText `
+                -PercentComplete $progressPercentComplete `
+                -CurrentOperation "Downloading file"
+
+
             $versionDir = Join-Path $downloadDir $file.Version
             if (-not (Test-Path $versionDir)) {
                 Write-Verbose "Creating output directory for version '$($file.Version)' at '$versionDir'"
@@ -72,7 +87,7 @@ function Get-DotNetFile {
 
             $ridDir = Join-Path $versionDir $file.RuntimeIdentifier
             if (-not (Test-Path $ridDir)) {
-                Write-Verbose "Creating output directory for runtime identifider '$($file.VerRuntimeIdentifiersion)' at '$ridDir'"
+                Write-Verbose "Creating output directory for runtime identifier '$($file.RuntimeIdentifier)' at '$ridDir'"
                 New-Item -ItemType Directory -Path $ridDir | Out-Null
             }
 
@@ -83,6 +98,13 @@ function Get-DotNetFile {
             Write-Verbose "Downloading file '$($file.Name)' to '$outPath'"
             Invoke-WebRequest -Uri $file.Url -OutFile $outPath
 
+            
+            Write-Progress -Id 1 `
+                -Activity $progressActivity `
+                -Status $progressStatusText `
+                -PercentComplete $progressPercentComplete `
+                -CurrentOperation "Verifiyng hash"
+            
             Write-Verbose "Verifying hash of downloaded file '$outPath'"
             $hash = (Get-FileHash -Path $outPath -Algorithm SHA512).Hash.ToLower()
             if ($hash -ne $file.Hash) {
@@ -91,9 +113,10 @@ function Get-DotNetFile {
             else {
                 Write-Verbose "Successfully verfified hash of '$outPath'"
             }
-
             # Pass downloaded file to pipeline
             Get-Item -Path $outPath
+                        
+            $completedFileCount += 1
         }
     }
     END { }

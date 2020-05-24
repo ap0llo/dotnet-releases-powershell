@@ -1,0 +1,37 @@
+name: Update Generated Files
+
+on:
+  push:
+    branches:
+    - master
+    paths-ignore:
+    - dist/*
+    - docs/commands/*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Check out repo
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Update Docs
+      shell: pwsh
+      run: |-
+        ./build/generate-help.ps1
+
+    - name: Update Single File Module
+      shell: pwsh
+      run: |-
+        ./build/generate-singlefilemodule.ps1
+
+    - name: Commit and push if README.asc was updated
+      run: |-
+        git diff
+        git config --global user.email "actions@github.com"
+        git config --global user.name "GitHub Actions"
+        git diff --quiet || (git add docs/commands && git add dist && git commit -m "Update auto-generated files")
+        git push

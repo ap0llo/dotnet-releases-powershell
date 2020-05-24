@@ -126,14 +126,15 @@ function Get-DotNetFile {
 
         $totalFileCount = ($FileInfo | Measure-Object).Count
         $completedFileCount = 0
+        $progressActivity = "Downloading Files"
+        $progressActivityId = 1
 
         foreach ($file in $FileInfo) {
 
-            $progressActivity = "Downloading Files"
             $progessStepText = "Downloading $($file.Name), version $($file.Version)"
             $progressStatusText = "File $(($completedFileCount + 1).ToString().PadLeft($totalFileCount.Count.ToString().Length)) of $totalFileCount | $progessStepText"
             $progressPercentComplete = ($completedFileCount / $totalFileCount * 100)
-            Write-Progress -Id 1 `
+            Write-Progress -Id $progressActivityId `
                 -Activity $progressActivity `
                 -Status $progressStatusText `
                 -PercentComplete $progressPercentComplete `
@@ -160,7 +161,7 @@ function Get-DotNetFile {
             Invoke-WebRequest -Uri $file.Url -OutFile $outPath
 
 
-            Write-Progress -Id 1 `
+            Write-Progress -Id $progressActivityId `
                 -Activity $progressActivity `
                 -Status $progressStatusText `
                 -PercentComplete $progressPercentComplete `
@@ -179,6 +180,10 @@ function Get-DotNetFile {
 
             $completedFileCount += 1
         }
+        
+        Write-Progress -Id 1 `
+            -Activity $progressActivity `
+            -Completed
     }
     END { }
 }

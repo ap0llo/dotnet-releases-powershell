@@ -4,19 +4,22 @@ class DotNetChannelInfo {
     [ValidateNotNullOrEmpty()][string]$LatestRelease
     [DateTime]$LatestReleaseDate
     [ValidateNotNull()][Uri]$ReleasesJsonUri
-    [string]$SupportPhase
+    [Nullable[DateTime]]$EolDate
+    [ValidateNotNullOrEmpty()][string]$SupportPhase
 
     DotNetChannelInfo(
         [string]$ChannelVersion,
         [string]$LatestRelease,
         [DateTime]$LatestReleaseDate,
         [Uri]$ReleasesJsonUri,
+        [Nullable[DateTime]]$EolDate,
         [string]$SupportPhase
     ) {
         $this.ChannelVersion = $ChannelVersion
         $this.LatestRelease = $LatestRelease
         $this.LatestReleaseDate = $LatestReleaseDate
         $this.ReleasesJsonUri = $ReleasesJsonUri
+        $this.EolDate = $EolDate
         $this.SupportPhase = $SupportPhase
     }
 }

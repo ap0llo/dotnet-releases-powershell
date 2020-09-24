@@ -19,7 +19,7 @@
     Get-DotNetReleaseChannel -ChannelVersion "3.1"
 
     Get information for the .NET Core 3.1 release channel.
-.EXAMPLE 
+.EXAMPLE
     Get-DotNetReleaseChannel -SupportPhase "LTS"
 
     Get all "long-term support" release channels
@@ -29,7 +29,7 @@ function Get-DotNetReleaseChannel {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $false)][string]$ChannelVersion,
-        [Parameter(Mandatory = $false)][string][ValidateSet("Preview","EOL","LTS","Maintenance")]$SupportPhase
+        [Parameter(Mandatory = $false)][string][ValidateSet("Preview", "EOL", "LTS", "Maintenance")]$SupportPhase
     )
 
     $response = Invoke-WebRequest -Uri $ReleaseIndexUri
@@ -37,11 +37,17 @@ function Get-DotNetReleaseChannel {
 
     foreach ($obj in $releaseIndex.'releases-index') {
 
+        $eolDate = $null
+        if ($obj.'eol-date') {
+            $eolDate = [DateTime]::Parse($obj.'eol-date')
+        }
+
         $channelInfo = [DotNetChannelInfo]::new(
             $obj.'channel-version',
             $obj.'latest-release',
             [DateTime]::Parse($obj.'latest-release-date'),
             $obj.'releases.json',
+            $eolDate,
             $obj.'support-phase'
         )
 

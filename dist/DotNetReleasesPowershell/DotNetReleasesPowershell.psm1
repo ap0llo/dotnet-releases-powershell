@@ -27,19 +27,22 @@ class DotNetChannelInfo {
     [ValidateNotNullOrEmpty()][string]$LatestRelease
     [DateTime]$LatestReleaseDate
     [ValidateNotNull()][Uri]$ReleasesJsonUri
-    [string]$SupportPhase
+    [Nullable[DateTime]]$EolDate
+    [ValidateNotNullOrEmpty()][string]$SupportPhase
 
     DotNetChannelInfo(
         [string]$ChannelVersion,
         [string]$LatestRelease,
         [DateTime]$LatestReleaseDate,
         [Uri]$ReleasesJsonUri,
+        [Nullable[DateTime]]$EolDate,
         [string]$SupportPhase
     ) {
         $this.ChannelVersion = $ChannelVersion
         $this.LatestRelease = $LatestRelease
         $this.LatestReleaseDate = $LatestReleaseDate
         $this.ReleasesJsonUri = $ReleasesJsonUri
+        $this.EolDate = $EolDate
         $this.SupportPhase = $SupportPhase
     }
 }
@@ -49,6 +52,8 @@ class DotNetReleaseInfo {
     [ValidateNotNullOrEmpty()][string]$ChannelVersion
     [ValidateNotNullOrEmpty()][string]$Version
     [ValidateNotNullOrEmpty()][DateTime]$ReleaseDate
+    [Nullable[DateTime]]$EolDate
+    [ValidateNotNullOrEmpty()][string]$SupportPhase
     [DotNetRuntimeReleaseInfo]$Runtime
     [DotNetSdkReleaseInfo]$Sdk
 
@@ -56,12 +61,16 @@ class DotNetReleaseInfo {
         [string]$ChannelVersion,
         [string]$Version,
         [DateTime]$ReleaseDate,
+        [Nullable[DateTime]]$EolDate,
+        [string]$SupportPhase,
         [DotNetRuntimeReleaseInfo]$Runtime,
         [DotNetSdkReleaseInfo]$Sdk
     ) {
         $this.ChannelVersion = $ChannelVersion
         $this.Version = $Version
         $this.ReleaseDate = $ReleaseDate
+        $this.EolDate = $EolDate
+        $this.SupportPhase = $SupportPhase
         $this.Runtime = $Runtime
         $this.Sdk = $Sdk
     }
@@ -655,7 +664,7 @@ function Get-DotNetInstallation {
     Get-DotNetReleaseChannel -ChannelVersion "3.1"
 
     Get information for the .NET Core 3.1 release channel.
-.EXAMPLE 
+.EXAMPLE
     Get-DotNetReleaseChannel -SupportPhase "LTS"
 
     Get all "long-term support" release channels
@@ -665,7 +674,7 @@ function Get-DotNetReleaseChannel {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $false)][string]$ChannelVersion,
-        [Parameter(Mandatory = $false)][string][ValidateSet("Preview","EOL","LTS","Maintenance")]$SupportPhase
+        [Parameter(Mandatory = $false)][string][ValidateSet("Preview", "EOL", "LTS", "Maintenance")]$SupportPhase
     )
 
     $response = Invoke-WebRequest -Uri $ReleaseIndexUri
@@ -673,11 +682,17 @@ function Get-DotNetReleaseChannel {
 
     foreach ($obj in $releaseIndex.'releases-index') {
 
+        $eolDate = $null
+        if ($obj.'eol-date') {
+            $eolDate = [DateTime]::Parse($obj.'eol-date')
+        }
+
         $channelInfo = [DotNetChannelInfo]::new(
             $obj.'channel-version',
             $obj.'latest-release',
             [DateTime]::Parse($obj.'latest-release-date'),
             $obj.'releases.json',
+            $eolDate,
             $obj.'support-phase'
         )
 
@@ -830,6 +845,11 @@ function Get-DotNetReleaseInfo {
 
             $latestRelease = $releaseInfoJson.'latest-release'
 
+            $eolDate = $null
+            if ($releaseInfoJson.'eol-date') {
+                $eolDate = [DateTime]::Parse($releaseInfoJson.'eol-date')
+            }
+
             foreach ($releaseJson in $releaseInfoJson.'releases') {
 
                 $thisReleaseVersion = $releaseJson.'release-version'
@@ -843,6 +863,8 @@ function Get-DotNetReleaseInfo {
                     $channelInfo.ChannelVersion,
                     $thisReleaseVersion,
                     [DateTime]::Parse($releaseJson.'release-date'),
+                    $eolDate,
+                    $releaseInfoJson.'support-phase',
                     $runtimeInfo,
                     $sdkInfo
                 )

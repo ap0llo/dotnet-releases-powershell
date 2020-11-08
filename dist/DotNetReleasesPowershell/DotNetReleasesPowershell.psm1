@@ -682,12 +682,12 @@ function Get-DotNetReleaseChannel {
 
     foreach ($obj in $releaseIndex.'releases-index') {
 
-        $eolDate = $null
+        [Nullable[DateTime]]$eolDate = $null
         if ($obj.'eol-date') {
             $eolDate = [DateTime]::Parse($obj.'eol-date')
         }
 
-        $channelInfo = [DotNetChannelInfo]::new(
+        [DotNetChannelInfo]$channelInfo = [DotNetChannelInfo]::new(
             $obj.'channel-version',
             $obj.'latest-release',
             [DateTime]::Parse($obj.'latest-release-date'),

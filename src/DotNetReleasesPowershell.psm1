@@ -3,6 +3,6 @@
 
 $commandFiles = Get-ChildItem -Path (Join-Path $PSScriptRoot "commands") -Filter "*.ps1"
 
-foreach($file in $commandFiles) {
+foreach ($file in $commandFiles) {
     . $file.FullName
 }

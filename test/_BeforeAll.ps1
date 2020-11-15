@@ -1,6 +1,14 @@
 Remove-Module "DotNetReleasesPowershell" -Force -ErrorAction SilentlyContinue
 Import-Module (Join-Path $PSScriptRoot "../src/DotNetReleasesPowershell.psm1" | Resolve-Path).Path
 
+# Define Mocks in the Scope of the DotNetReleasesPowershell module.
+# This is necessary to make Mocks work when running Invoke-Pester from a script
+# See https://github.com/pester/Pester/issues/1777
+$PSDefaultParameterValues = @{
+    "Mock:ModuleName"              = "DotNetReleasesPowershell"
+    "Assert-MockCalled:ModuleName" = "DotNetReleasesPowershell"
+}
+
 <#
 .SYNOPSIS
     Creates a entry in the "releases-index.json" file as PSCustomObject.

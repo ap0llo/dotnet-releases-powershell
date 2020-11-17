@@ -4,7 +4,14 @@ BeforeAll {
 
 Describe "Get-DotNetReleaseChannel" {
 
-    It "Returns an empty result if there are not releases" {
+    BeforeEach {
+        # Default Mock: throw execption, all expected calls to Invoke-WebRequest should be mocked in the individual test cases
+        Mock Invoke-WebRequest {
+            throw "Unexpected call to Invoke-WebRequest with uri '$Uri'"
+        }
+    }
+
+    It "Returns an empty result if there are no releases" {
 
         # ARRANGE
         Mock Invoke-WebRequest -ParameterFilter { Test-ReleasesIndexUri $Uri } -Verifiable {

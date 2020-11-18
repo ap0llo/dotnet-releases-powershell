@@ -161,7 +161,7 @@ function Get-DotNetReleaseInfo {
                     $thisReleaseVersion,
                     [DateTime]::Parse($releaseJson.'release-date'),
                     $eolDate,
-                    $releaseInfoJson.'support-phase',
+                    [DotNetSupportPhase]$releaseInfoJson.'support-phase',
                     $runtimeInfo,
                     $sdkInfo
                 )

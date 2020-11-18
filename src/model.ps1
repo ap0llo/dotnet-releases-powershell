@@ -1,3 +1,12 @@
+enum DotNetSupportPhase {
+    Preview
+    EOL
+    LTS
+    Maintenance
+    RC
+    Current
+}
+
 class DotNetChannelInfo {
 
     [ValidateNotNullOrEmpty()][string]$ChannelVersion
@@ -5,7 +14,7 @@ class DotNetChannelInfo {
     [DateTime]$LatestReleaseDate
     [ValidateNotNull()][Uri]$ReleasesJsonUri
     [Nullable[DateTime]]$EolDate
-    [ValidateNotNullOrEmpty()][string]$SupportPhase
+    [ValidateNotNull()][DotNetSupportPhase]$SupportPhase
 
     DotNetChannelInfo(
         [string]$ChannelVersion,
@@ -13,7 +22,7 @@ class DotNetChannelInfo {
         [DateTime]$LatestReleaseDate,
         [Uri]$ReleasesJsonUri,
         [Nullable[DateTime]]$EolDate,
-        [string]$SupportPhase
+        [DotNetSupportPhase]$SupportPhase
     ) {
         $this.ChannelVersion = $ChannelVersion
         $this.LatestRelease = $LatestRelease
@@ -30,7 +39,7 @@ class DotNetReleaseInfo {
     [ValidateNotNullOrEmpty()][string]$Version
     [ValidateNotNullOrEmpty()][DateTime]$ReleaseDate
     [Nullable[DateTime]]$EolDate
-    [ValidateNotNullOrEmpty()][string]$SupportPhase
+    [ValidateNotNull()][DotNetSupportPhase]$SupportPhase
     [DotNetRuntimeReleaseInfo]$Runtime
     [DotNetSdkReleaseInfo]$Sdk
 
@@ -39,7 +48,7 @@ class DotNetReleaseInfo {
         [string]$Version,
         [DateTime]$ReleaseDate,
         [Nullable[DateTime]]$EolDate,
-        [string]$SupportPhase,
+        [DotNetSupportPhase]$SupportPhase,
         [DotNetRuntimeReleaseInfo]$Runtime,
         [DotNetSdkReleaseInfo]$Sdk
     ) {

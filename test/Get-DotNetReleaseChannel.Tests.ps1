@@ -138,11 +138,56 @@ Describe "Get-DotNetReleaseChannel" {
         }
 
         # ACT
-        $releaseChannels = Get-DotNetReleaseChannel -SupportPhase "lts"
+        $releaseChannels = Get-DotNetReleaseChannel -SupportPhase LTS
 
         # ASSERT
         $releaseChannels | Should -HaveCount 1
         $releaseChannels[0].ChannelVersion | Should -BeExactly "2.0"
         Assert-MockCalled Invoke-WebRequest -ParameterFilter { Test-ReleasesIndexUri $Uri } -Times 1
+    }
+
+    It "A support-phase value of '<SupportPhase>' is correctly parsed" -TestCase @(
+        @{ SupportPhase = "Preview" }
+        @{ SupportPhase = "EOL" }
+        @{ SupportPhase = "LTS" }
+        @{ SupportPhase = "Maintenance" }
+        @{ SupportPhase = "RC" }
+        @{ SupportPhase = "Current" }
+    ) {
+
+        param($SupportPhase)
+
+        # ARRANGE
+        Mock Invoke-WebRequest -ParameterFilter { Test-ReleasesIndexUri $Uri } -Verifiable {
+            Get-ReleasesIndexResponse -Entries @(
+                (Get-ReleasesIndexEntry -ChannelVersion "1.0" -SupportPhase $SupportPhase.ToString())
+            )
+        }
+
+        # ACT
+        $channel = Get-DotNetReleaseChannel
+
+        # ASSERT
+        $channel.SupportPhase | Should -Be $SupportPhase
+    }
+
+
+    It "Throws if support-phase has unexpected value of '<InvalidSupportPhase>'" -TestCase @(
+        @{InvalidSupportPhase = "" }
+        @{InvalidSupportPhase = " " }
+        @{InvalidSupportPhase = "not-a-support-phase" }
+    ) {
+
+        param($InvalidSupportPhase)
+
+        # ARRANGE
+        Mock Invoke-WebRequest -ParameterFilter { Test-ReleasesIndexUri $Uri } -Verifiable {
+            Get-ReleasesIndexResponse -Entries @(
+                (Get-ReleasesIndexEntry -ChannelVersion "1.0" -SupportPhase $InvalidSupportPhase)
+            )
+        }
+
+        # ACT / ASSERT
+        { Get-DotNetReleaseChannel } | Should -Throw "Cannot convert value `"$InvalidSupportPhase`" to type `"DotNetSupportPhase`"*"
     }
 }

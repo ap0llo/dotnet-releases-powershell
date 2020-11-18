@@ -4,6 +4,8 @@
     are still true for the current online versions of these files
 #>
 
+. (Join-Path $PSScriptRoot "../src/model.ps1")
+
 BeforeAll {
 
     . (Join-Path $PSScriptRoot "../src/variables.ps1")
@@ -165,7 +167,7 @@ Describe "releases.json" {
         }
 
         It "Value of property 'support-phase' is in [<KnownSupportPhases>]" -TestCases @(
-            @{ KnownSupportPhases = @("Preview", "EOL", "LTS", "Maintenance", "RC", "Current") }
+            @{ KnownSupportPhases = [DotNetSupportPhase].GetEnumValues() }
         ) {
             param($KnownSupportPhases)
 
@@ -253,7 +255,7 @@ Describe "releases.json" {
                 }
             }
 
-            Context "releases.sdk.files" {
+            Context "'releases.sdk.files'" {
 
                 It "Property '<PropertyName>' exists" -TestCases @(
                     @{ PropertyName = 'name' }
@@ -325,7 +327,7 @@ Describe "releases.json" {
                 }
             }
 
-            Context "releases.runtime.files" {
+            Context "'releases.runtime.files'" {
 
                 It "Property '<PropertyName>' exists" -TestCases @(
                     @{ PropertyName = 'name' }
@@ -364,9 +366,7 @@ Describe "releases.json" {
                 }
             }
         }
-
     }
-
 }
 
 

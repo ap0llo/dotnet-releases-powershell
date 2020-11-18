@@ -4,6 +4,8 @@
     are still true for the current online versions of these files
 #>
 
+. (Join-Path $PSScriptRoot "../src/model.ps1")
+
 BeforeAll {
     . (Join-Path $PSScriptRoot "../src/variables.ps1")
 
@@ -117,7 +119,7 @@ Describe "releases-index.json" {
         }
 
         It "Property 'support-phase' is in [<KnownSupportPhases>]" -TestCases @(
-            @{ KnownSupportPhases = @("Preview", "EOL", "LTS", "Maintenance", "RC", "Current") }
+            @{ KnownSupportPhases = [DotNetSupportPhase].GetEnumValues() }
         ) {
             param($KnownSupportPhases)
 

@@ -146,4 +146,208 @@ Describe "Get-DotNetReleaseInfo" {
 
         # TODO: Check if the expected files for SDK and runtime are included in the output
     }
+
+    Context "'sdk' metadata" {
+
+        It "Output includes the SDK metadata from the releases.json file" {
+
+            # ARRANGE
+            Mock Invoke-WebRequest -Verifiable -ParameterFilter { Test-ReleasesIndexUri $Uri } {
+                Get-ReleasesIndexResponse -Entries @(
+                    Get-ReleasesIndexEntry -ChannelVersion "1.0" -ReleasesJsonUrl "http://example.com/1.0/releases.json"
+                )
+            }
+
+            Mock Invoke-WebRequest -Verifiable -ParameterFilter { Test-ReleasesJsonUri $Uri -ChannelVersion "1.0" } {
+                Get-ReleasesJsonResponse `
+                    -ChannelVersion "1.0" `
+                    -Entries @(
+                    Get-ReleasesJsonEntry `
+                        -ReleaseVersion "1.2.0" `
+                        -Sdk (
+                        Get-ReleasesJsonSdkEntry `
+                            -Version "1.2.3" `
+                            -Files @(
+                            Get-ReleasesJsonFileEntry `
+                                -Name "some-file.zip" `
+                                -Rid "win-x86" `
+                                -Url "https://www.example.com/some-file.zip" `
+                                -Hash "def345"
+                        )))
+            }
+
+            # ACT
+            $releases = Get-DotNetReleaseInfo -ChannelVersion "1.0"
+
+            # ASSERT
+            $releases | Should -HaveCount 1
+            $releases[0].Sdk | Should -Not -BeNull
+            $releases[0].Sdk.ReleaseVersion | Should -BeExactly "1.2.0"
+            $releases[0].Sdk.Version | Should -BeExactly "1.2.3"
+            $releases[0].Sdk.Files | Should -HaveCount 1
+
+            $releases[0].Sdk.Files[0].PackageType | Should -BeExactly "Sdk"
+            $releases[0].Sdk.Files[0].ReleaseVersion | Should -BeExactly "1.2.0"
+            $releases[0].Sdk.Files[0].Version | Should -BeExactly "1.2.3"
+            $releases[0].Sdk.Files[0].Name | Should -BeExactly "some-file.zip"
+            $releases[0].Sdk.Files[0].Extension | Should -BeExactly "zip"
+            $releases[0].Sdk.Files[0].RuntimeIdentifier | Should -BeExactly "win-x86"
+            $releases[0].Sdk.Files[0].Url | Should -BeExactly "https://www.example.com/some-file.zip"
+            $releases[0].Sdk.Files[0].Hash | Should -BeExactly "def345"
+        }
+
+        It "'Files' can be empty" {
+
+            # ARRANGE
+            Mock Invoke-WebRequest -Verifiable -ParameterFilter { Test-ReleasesIndexUri $Uri } {
+                Get-ReleasesIndexResponse -Entries @(
+                    Get-ReleasesIndexEntry -ChannelVersion "1.0" -ReleasesJsonUrl "http://example.com/1.0/releases.json"
+                )
+            }
+
+            Mock Invoke-WebRequest -Verifiable -ParameterFilter { Test-ReleasesJsonUri $Uri -ChannelVersion "1.0" } {
+                Get-ReleasesJsonResponse `
+                    -ChannelVersion "1.0" `
+                    -Entries @(
+                    Get-ReleasesJsonEntry -Sdk (Get-ReleasesJsonSdkEntry -Version "1.2.3" -Files @())
+                )
+            }
+
+            # ACT
+            $releases = Get-DotNetReleaseInfo -ChannelVersion "1.0"
+
+            # ASSERT
+            $releases | Should -HaveCount 1
+            $releases[0].Sdk | Should -Not -BeNull
+            $releases[0].Sdk.Files | Should -HaveCount 0
+        }
+
+        It "The 'Sdk' property is null if the release does not contain a sdk" {
+
+            # ARRANGE
+            Mock Invoke-WebRequest -Verifiable -ParameterFilter { Test-ReleasesIndexUri $Uri } {
+                Get-ReleasesIndexResponse -Entries @(
+                    Get-ReleasesIndexEntry -ChannelVersion "1.0" -ReleasesJsonUrl "http://example.com/1.0/releases.json"
+                )
+            }
+
+            Mock Invoke-WebRequest -Verifiable -ParameterFilter { Test-ReleasesJsonUri $Uri -ChannelVersion "1.0" } {
+                Get-ReleasesJsonResponse `
+                    -ChannelVersion "1.0" `
+                    -Entries @(
+                    Get-ReleasesJsonEntry -Sdk $null
+                )
+            }
+
+            # ACT
+            $releases = Get-DotNetReleaseInfo -ChannelVersion "1.0"
+
+            # ASSERT
+            $releases | Should -HaveCount 1
+            $releases[0].Sdk | Should -BeNull
+        }
+    }
+
+
+    Context "'runtime' metadata" {
+
+        It "Output includes the runtime metadata from the releases.json file" {
+
+            # ARRANGE
+            Mock Invoke-WebRequest -Verifiable -ParameterFilter { Test-ReleasesIndexUri $Uri } {
+                Get-ReleasesIndexResponse -Entries @(
+                    Get-ReleasesIndexEntry -ChannelVersion "1.0" -ReleasesJsonUrl "http://example.com/1.0/releases.json"
+                )
+            }
+
+            Mock Invoke-WebRequest -Verifiable -ParameterFilter { Test-ReleasesJsonUri $Uri -ChannelVersion "1.0" } {
+                Get-ReleasesJsonResponse `
+                    -ChannelVersion "1.0" `
+                    -Entries @(
+                    Get-ReleasesJsonEntry `
+                        -ReleaseVersion "1.2.0" `
+                        -Runtime (
+                        Get-ReleasesJsonRuntimeEntry `
+                            -Version "1.2.3" `
+                            -Files @(
+                            Get-ReleasesJsonFileEntry `
+                                -Name "some-file.zip" `
+                                -Rid "win-x86" `
+                                -Url "https://www.example.com/some-file.zip" `
+                                -Hash "def345"
+                        )))
+            }
+
+            # ACT
+            $releases = Get-DotNetReleaseInfo -ChannelVersion "1.0"
+
+            # ASSERT
+            $releases | Should -HaveCount 1
+            $releases[0].Runtime | Should -Not -BeNull
+            $releases[0].Runtime.ReleaseVersion | Should -BeExactly "1.2.0"
+            $releases[0].Runtime.Version | Should -BeExactly "1.2.3"
+            $releases[0].Runtime.Files | Should -HaveCount 1
+
+            $releases[0].Runtime.Files[0].PackageType | Should -BeExactly "Runtime"
+            $releases[0].Runtime.Files[0].ReleaseVersion | Should -BeExactly "1.2.0"
+            $releases[0].Runtime.Files[0].Version | Should -BeExactly "1.2.3"
+            $releases[0].Runtime.Files[0].Name | Should -BeExactly "some-file.zip"
+            $releases[0].Runtime.Files[0].Extension | Should -BeExactly "zip"
+            $releases[0].Runtime.Files[0].RuntimeIdentifier | Should -BeExactly "win-x86"
+            $releases[0].Runtime.Files[0].Url | Should -BeExactly "https://www.example.com/some-file.zip"
+            $releases[0].Runtime.Files[0].Hash | Should -BeExactly "def345"
+        }
+
+        It "'Files' can be empty" {
+
+            # ARRANGE
+            Mock Invoke-WebRequest -Verifiable -ParameterFilter { Test-ReleasesIndexUri $Uri } {
+                Get-ReleasesIndexResponse -Entries @(
+                    Get-ReleasesIndexEntry -ChannelVersion "1.0" -ReleasesJsonUrl "http://example.com/1.0/releases.json"
+                )
+            }
+
+            Mock Invoke-WebRequest -Verifiable -ParameterFilter { Test-ReleasesJsonUri $Uri -ChannelVersion "1.0" } {
+                Get-ReleasesJsonResponse `
+                    -ChannelVersion "1.0" `
+                    -Entries @(
+                    Get-ReleasesJsonEntry -Runtime (Get-ReleasesJsonSdkEntry -Version "1.2.3" -Files @())
+                )
+            }
+
+            # ACT
+            $releases = Get-DotNetReleaseInfo -ChannelVersion "1.0"
+
+            # ASSERT
+            $releases | Should -HaveCount 1
+            $releases[0].Runtime | Should -Not -BeNull
+            $releases[0].Runtime.Files | Should -HaveCount 0
+        }
+
+
+        It "The 'Runtime' property if null is the release does not contain a runtime" {
+
+            # ARRANGE
+            Mock Invoke-WebRequest -Verifiable -ParameterFilter { Test-ReleasesIndexUri $Uri } {
+                Get-ReleasesIndexResponse -Entries @(
+                    Get-ReleasesIndexEntry -ChannelVersion "1.0" -ReleasesJsonUrl "http://example.com/1.0/releases.json"
+                )
+            }
+
+            Mock Invoke-WebRequest -Verifiable -ParameterFilter { Test-ReleasesJsonUri $Uri -ChannelVersion "1.0" } {
+                Get-ReleasesJsonResponse `
+                    -ChannelVersion "1.0" `
+                    -Entries @(
+                    Get-ReleasesJsonEntry -Runtime $null
+                )
+            }
+
+            # ACT
+            $releases = Get-DotNetReleaseInfo -ChannelVersion "1.0"
+
+            # ASSERT
+            $releases | Should -HaveCount 1
+            $releases[0].Runtime | Should -BeNull
+        }
+    }
 }

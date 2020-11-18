@@ -54,8 +54,11 @@ function Get-DotNetReleaseInfo {
     PROCESS {
 
         function GetFileInfos($packageType, $version, $thisReleaseVersion, $jsonFilesArray) {
+
             foreach ($jsonObject in $jsonFilesArray) {
                 $name = $jsonObject.'name'
+                # TODO: rid may be empty or not exist
+                # TODO: hash may be empty
                 $fileInfo = [DotNetFileInfo]::new(
                     $packageType,
                     $version,
@@ -68,17 +71,25 @@ function Get-DotNetReleaseInfo {
                 )
 
                 #return to pipeline
-                $fileInfo
+                Write-Output $fileInfo
             }
         }
 
         function GetRuntimeReleaseInfo($thisReleaseVersion, $runtimeJsonObject) {
+            if (-not $runtimeJsonObject) {
+                return $null
+            }
             Write-Verbose "Reading runtime info for version '$thisReleaseVersion'"
             $version = $runtimeJsonObject.'version'
             $runtimeFiles = GetFileInfos -packageType "Runtime" `
                 -version $version `
                 -thisReleaseVersion $thisReleaseVersion `
                 -jsonFilesArray $runtimeJsonObject.'files'
+
+            if (-not $runtimeFiles) {
+                $runtimeFiles = @()
+            }
+
             return [DotNetRuntimeReleaseInfo]::new(
                 $thisReleaseVersion,
                 $version,
@@ -87,12 +98,20 @@ function Get-DotNetReleaseInfo {
         }
 
         function GetSdkReleaseInfo($thisReleaseVersion, $sdkJsonObject) {
+            if (-not $sdkJsonObject) {
+                return $null
+            }
             Write-Verbose "Reading SDK info for version '$thisReleaseVersion'"
             $version = $sdkJsonObject.'version'
             $sdkFiles = GetFileInfos -packageType "Sdk" `
                 -version $version `
                 -thisReleaseVersion $thisReleaseVersion `
                 -jsonFilesArray $sdkJsonObject.'files'
+
+            if (-not $sdkFiles) {
+                $sdkFiles = @()
+            }
+
             return [DotNetSdkReleaseInfo]::new(
                 $thisReleaseVersion,
                 $version,

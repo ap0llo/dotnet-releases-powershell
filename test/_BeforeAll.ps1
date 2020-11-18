@@ -19,7 +19,7 @@ function Get-ReleasesIndexEntry {
         [Parameter(Mandatory = $false)][string]$ChannelVersion = "1.0",
         [Parameter(Mandatory = $false)][string]$LatestRelease = "1.0.1",
         [Parameter(Mandatory = $false)][string]$LatestReleaseDate = "2000-01-01",
-        [Parameter(Mandatory = $false)][string]$SupportPhase = "Maintenance",
+        [Parameter(Mandatory = $false)][string]$SupportPhase = "Current",
         [Parameter(Mandatory = $false)][string]$EolDate = $null,
         [Parameter(Mandatory = $false)][string]$ReleasesJsonUrl = "https.//example.com/1.0/releases.json"
     )
@@ -52,7 +52,7 @@ function Get-ReleasesIndexResponse {
         [PSCustomObject[]]$Entries
     )
 
-    $json = [PSCustomObject]@{ 'releases-index' = $Entries } | ConvertTo-Json
+    $json = [PSCustomObject]@{ 'releases-index' = $Entries } | ConvertTo-Json -Depth 10
 
     return [PSCustomObject]@{
         Content = $json
@@ -89,23 +89,108 @@ function Test-ReleasesJsonUri {
 }
 
 
+function Get-ReleasesJsonEntry {
+    param (
+        [Parameter(Mandatory = $false)][string]$ReleaseDate = "2000-01-01",
+        [Parameter(Mandatory = $false)][string]$ReleaseVersion = "1.0.1",
+        [Parameter(Mandatory = $false)][PSCustomObject]$Sdk = $null,
+        [Parameter(Mandatory = $false)][PSCustomObject]$Runtime = $null
+    )
+
+    $releasesJsonEntry = [PSCustomObject]@{
+        'release-date'    = $ReleaseDate
+        'release-version' = $ReleaseVersion
+    }
+
+    if ($Sdk) {
+        $releasesJsonEntry | Add-Member -MemberType NoteProperty -Name 'sdk' -Value $Sdk
+    }
+
+    if ($Runtime) {
+        $releasesJsonEntry | Add-Member -MemberType NoteProperty -Name 'Runtime' -Value $Runtime
+    }
+
+    return $releasesJsonEntry
+}
+
+function Get-ReleasesJsonSdkEntry {
+    param (
+        [Parameter(Mandatory = $false)][string]$Version = "1.0.0",
+        [Parameter(Mandatory = $false)][PSCustomObject[]]$Files = @()
+    )
+
+    $sdk = [PSCustomObject]@{
+        'version' = $Version
+        'files'   = $Files
+    }
+
+    return $sdk
+}
+
+
+function Get-ReleasesJsonRuntimeEntry {
+    param (
+        [Parameter(Mandatory = $false)][string]$Version = "1.0.0",
+        [Parameter(Mandatory = $false)][PSCustomObject[]]$Files = @()
+    )
+
+    $sdk = [PSCustomObject]@{
+        'version' = $Version
+        'files'   = $Files
+    }
+
+    return $sdk
+}
+
+function Get-ReleasesJsonFileEntry {
+    param (
+        [Parameter(Mandatory = $false)][string]$Name = "file1.zip",
+        [Parameter(Mandatory = $false)][string]$RId = "win-x64",
+        [Parameter(Mandatory = $false)][string]$Url = "https://example.com",
+        [Parameter(Mandatory = $false)][string]$Hash = "abc123"
+    )
+
+    $file = [PSCustomObject]@{ }
+
+    if ($null -ne $Name) {
+        $file | Add-Member -MemberType NoteProperty -Name 'name' -Value $Name
+    }
+
+    if ($null -ne $RId) {
+        $file | Add-Member -MemberType NoteProperty -Name 'rid' -Value $RId
+    }
+
+    if ($null -ne $Url) {
+        $file | Add-Member -MemberType NoteProperty -Name 'url' -Value $Url
+    }
+
+    if ($null -ne $Hash) {
+        $file | Add-Member -MemberType NoteProperty -Name 'hash' -Value $Hash
+    }
+
+    return $file
+}
+
 function Get-ReleasesJsonResponse {
 
     param(
         [Parameter(Mandatory = $false)][string]$ChannelVersion = "1.0",
-        [Parameter(Mandatory = $false)][string]$EolDate = $null
+        [Parameter(Mandatory = $false)][string]$SupportPhase = "Current",
+        [Parameter(Mandatory = $false)][string]$EolDate = $null,
+        [Parameter(Mandatory = $false)][PSCustomObject[]]$Entries = $null
     )
 
     $rootObject = [PSCustomObject]@{
         'channel-version' = $ChannelVersion
-        'releases-index'  = $Entries
+        'releases'        = $Entries
+        'support-phase'   = $SupportPhase
     }
 
     if ($EolDate) {
         $rootObject | Add-Member -MemberType NoteProperty -Name 'eol-date' -Value $EolDate
     }
 
-    $json = ConvertTo-Json $rootObject
+    $json = ConvertTo-Json $rootObject -Depth 10
     return [PSCustomObject]@{
         Content = $json
     }

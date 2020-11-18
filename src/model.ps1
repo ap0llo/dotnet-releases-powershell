@@ -57,7 +57,7 @@ class DotNetRuntimeReleaseInfo {
 
     [ValidateNotNullOrEmpty()][string]$ReleaseVersion
     [string]$Version
-    [DotNetFileInfo[]]$Files
+    [ValidateNotNull()][AllowEmptyCollection()][DotNetFileInfo[]]$Files
 
     DotNetRuntimeReleaseInfo(
         [string]$ReleaseVersion,
@@ -74,7 +74,7 @@ class DotNetSdkReleaseInfo {
 
     [ValidateNotNullOrEmpty()][string]$ReleaseVersion
     [ValidateNotNullOrEmpty()][string]$Version
-    [ValidateNotNull()][DotNetFileInfo[]]$Files
+    [ValidateNotNull()][AllowEmptyCollection()][DotNetFileInfo[]]$Files
 
     DotNetSdkReleaseInfo(
         [string]$ReleaseVersion,

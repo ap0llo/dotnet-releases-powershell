@@ -71,3 +71,42 @@ function Test-ReleasesIndexUri {
 
     return $Uri.ToString().EndsWith("releases-index.json", [System.StringComparison]::OrdinalIgnoreCase)
 }
+
+
+
+<#
+.SYNOPSIS
+    Tests if the specified uri is an uri to the "releases.json" for the specified version
+#>
+function Test-ReleasesJsonUri {
+
+    param (
+        [Parameter(Mandatory = $true)][ValidateNotNull()][System.Uri]$Uri,
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$ChannelVersion
+    )
+
+    return $Uri.ToString().EndsWith("$ChannelVersion/releases.json", [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+
+function Get-ReleasesJsonResponse {
+
+    param(
+        [Parameter(Mandatory = $false)][string]$ChannelVersion = "1.0",
+        [Parameter(Mandatory = $false)][string]$EolDate = $null
+    )
+
+    $rootObject = [PSCustomObject]@{
+        'channel-version' = $ChannelVersion
+        'releases-index'  = $Entries
+    }
+
+    if ($EolDate) {
+        $rootObject | Add-Member -MemberType NoteProperty -Name 'eol-date' -Value $EolDate
+    }
+
+    $json = ConvertTo-Json $rootObject
+    return [PSCustomObject]@{
+        Content = $json
+    }
+}

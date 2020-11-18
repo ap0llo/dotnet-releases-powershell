@@ -21,6 +21,15 @@ $ReleaseIndexUri = "https://dotnetcli.blob.core.windows.net/dotnet/release-metad
 # BEGIN 'model.ps1'
 # --------------------------------------------------
 
+enum DotNetSupportPhase {
+    Preview
+    EOL
+    LTS
+    Maintenance
+    RC
+    Current
+}
+
 class DotNetChannelInfo {
 
     [ValidateNotNullOrEmpty()][string]$ChannelVersion
@@ -28,7 +37,7 @@ class DotNetChannelInfo {
     [DateTime]$LatestReleaseDate
     [ValidateNotNull()][Uri]$ReleasesJsonUri
     [Nullable[DateTime]]$EolDate
-    [ValidateNotNullOrEmpty()][string]$SupportPhase
+    [ValidateNotNull()][DotNetSupportPhase]$SupportPhase
 
     DotNetChannelInfo(
         [string]$ChannelVersion,
@@ -36,7 +45,7 @@ class DotNetChannelInfo {
         [DateTime]$LatestReleaseDate,
         [Uri]$ReleasesJsonUri,
         [Nullable[DateTime]]$EolDate,
-        [string]$SupportPhase
+        [DotNetSupportPhase]$SupportPhase
     ) {
         $this.ChannelVersion = $ChannelVersion
         $this.LatestRelease = $LatestRelease
@@ -53,7 +62,7 @@ class DotNetReleaseInfo {
     [ValidateNotNullOrEmpty()][string]$Version
     [ValidateNotNullOrEmpty()][DateTime]$ReleaseDate
     [Nullable[DateTime]]$EolDate
-    [ValidateNotNullOrEmpty()][string]$SupportPhase
+    [ValidateNotNull()][DotNetSupportPhase]$SupportPhase
     [DotNetRuntimeReleaseInfo]$Runtime
     [DotNetSdkReleaseInfo]$Sdk
 
@@ -62,7 +71,7 @@ class DotNetReleaseInfo {
         [string]$Version,
         [DateTime]$ReleaseDate,
         [Nullable[DateTime]]$EolDate,
-        [string]$SupportPhase,
+        [DotNetSupportPhase]$SupportPhase,
         [DotNetRuntimeReleaseInfo]$Runtime,
         [DotNetSdkReleaseInfo]$Sdk
     ) {
@@ -80,7 +89,7 @@ class DotNetRuntimeReleaseInfo {
 
     [ValidateNotNullOrEmpty()][string]$ReleaseVersion
     [string]$Version
-    [DotNetFileInfo[]]$Files
+    [ValidateNotNull()][AllowEmptyCollection()][DotNetFileInfo[]]$Files
 
     DotNetRuntimeReleaseInfo(
         [string]$ReleaseVersion,
@@ -97,7 +106,7 @@ class DotNetSdkReleaseInfo {
 
     [ValidateNotNullOrEmpty()][string]$ReleaseVersion
     [ValidateNotNullOrEmpty()][string]$Version
-    [ValidateNotNull()][DotNetFileInfo[]]$Files
+    [ValidateNotNull()][AllowEmptyCollection()][DotNetFileInfo[]]$Files
 
     DotNetSdkReleaseInfo(
         [string]$ReleaseVersion,
@@ -665,7 +674,7 @@ function Get-DotNetInstallation {
 
     Get information for the .NET Core 3.1 release channel.
 .EXAMPLE
-    Get-DotNetReleaseChannel -SupportPhase "LTS"
+    Get-DotNetReleaseChannel -SupportPhase LTS
 
     Get all "long-term support" release channels
 #>
@@ -674,7 +683,7 @@ function Get-DotNetReleaseChannel {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $false)][string]$ChannelVersion,
-        [Parameter(Mandatory = $false)][string][ValidateSet("Preview", "EOL", "LTS", "Maintenance", "RC", "Current")]$SupportPhase
+        [Parameter(Mandatory = $false)][DotNetSupportPhase]$SupportPhase
     )
 
     $response = Invoke-WebRequest -Uri $ReleaseIndexUri
@@ -693,7 +702,7 @@ function Get-DotNetReleaseChannel {
             [DateTime]::Parse($obj.'latest-release-date'),
             $obj.'releases.json',
             $eolDate,
-            $obj.'support-phase'
+            [DotNetSupportPhase]$obj.'support-phase'
         )
 
         # Skip non-matching results when ChannelVersion version was set
@@ -776,8 +785,11 @@ function Get-DotNetReleaseInfo {
     PROCESS {
 
         function GetFileInfos($packageType, $version, $thisReleaseVersion, $jsonFilesArray) {
+
             foreach ($jsonObject in $jsonFilesArray) {
                 $name = $jsonObject.'name'
+                # TODO: rid may be empty or not exist
+                # TODO: hash may be empty
                 $fileInfo = [DotNetFileInfo]::new(
                     $packageType,
                     $version,
@@ -790,17 +802,25 @@ function Get-DotNetReleaseInfo {
                 )
 
                 #return to pipeline
-                $fileInfo
+                Write-Output $fileInfo
             }
         }
 
         function GetRuntimeReleaseInfo($thisReleaseVersion, $runtimeJsonObject) {
+            if (-not $runtimeJsonObject) {
+                return $null
+            }
             Write-Verbose "Reading runtime info for version '$thisReleaseVersion'"
             $version = $runtimeJsonObject.'version'
             $runtimeFiles = GetFileInfos -packageType "Runtime" `
                 -version $version `
                 -thisReleaseVersion $thisReleaseVersion `
                 -jsonFilesArray $runtimeJsonObject.'files'
+
+            if (-not $runtimeFiles) {
+                $runtimeFiles = @()
+            }
+
             return [DotNetRuntimeReleaseInfo]::new(
                 $thisReleaseVersion,
                 $version,
@@ -809,12 +829,20 @@ function Get-DotNetReleaseInfo {
         }
 
         function GetSdkReleaseInfo($thisReleaseVersion, $sdkJsonObject) {
+            if (-not $sdkJsonObject) {
+                return $null
+            }
             Write-Verbose "Reading SDK info for version '$thisReleaseVersion'"
             $version = $sdkJsonObject.'version'
             $sdkFiles = GetFileInfos -packageType "Sdk" `
                 -version $version `
                 -thisReleaseVersion $thisReleaseVersion `
                 -jsonFilesArray $sdkJsonObject.'files'
+
+            if (-not $sdkFiles) {
+                $sdkFiles = @()
+            }
+
             return [DotNetSdkReleaseInfo]::new(
                 $thisReleaseVersion,
                 $version,
@@ -864,7 +892,7 @@ function Get-DotNetReleaseInfo {
                     $thisReleaseVersion,
                     [DateTime]::Parse($releaseJson.'release-date'),
                     $eolDate,
-                    $releaseInfoJson.'support-phase',
+                    [DotNetSupportPhase]$releaseInfoJson.'support-phase',
                     $runtimeInfo,
                     $sdkInfo
                 )

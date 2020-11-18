@@ -674,7 +674,7 @@ function Get-DotNetReleaseChannel {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $false)][string]$ChannelVersion,
-        [Parameter(Mandatory = $false)][string][ValidateSet("Preview", "EOL", "LTS", "Maintenance")]$SupportPhase
+        [Parameter(Mandatory = $false)][string][ValidateSet("Preview", "EOL", "LTS", "Maintenance", "RC", "Current")]$SupportPhase
     )
 
     $response = Invoke-WebRequest -Uri $ReleaseIndexUri

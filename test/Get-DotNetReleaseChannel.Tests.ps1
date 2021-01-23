@@ -64,7 +64,7 @@ Describe "Get-DotNetReleaseChannel" {
         $releaseChannels[0].ChannelVersion | Should -BeExactly "5.0"
         $releaseChannels[0].LatestRelease | Should -BeExactly "5.0.0-rc.2"
         $releaseChannels[0].LatestReleaseDate | Should -BeExactly (Get-Date -Year 2020 -Month 10 -Day 13).Date
-        $releaseChannels[0].SupportPhase | Should -BeExactly "rc"
+        $releaseChannels[0].SupportPhase | Should -Be  "rc"
         $releaseChannels[0].ReleasesJsonUri | Should -BeExactly "https://example.com/dotnet/release-metadata/5.0/releases.json"
         Assert-MockCalled Invoke-WebRequest -ParameterFilter { Test-ReleasesIndexUri $Uri } -Times 1
     }

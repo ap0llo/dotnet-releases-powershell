@@ -40,97 +40,106 @@ function Install-DotNet {
 
         [Parameter(Mandatory = $true, ParameterSetName = "FromDotNetReleaseInfo", ValueFromPipeline = $true)]
         [ValidateNotNull()]
-        [DotNetReleaseInfo]$ReleaseInfo
+        [DotNetReleaseInfo[]]$ReleaseInfo
     )
 
+    BEGIN { }
 
-    function GetRid {
-        # Determine runtime identifier for current OS
-        $platform = [System.Environment]::OSVersion.Platform
-        switch ($platform) {
-            "Win32NT" {
-                if ([System.Environment]::Is64BitOperatingSystem) {
-                    return "win-x64"
+    PROCESS {
+
+        function GetRid {
+            # Determine runtime identifier for current OS
+            $platform = [System.Environment]::OSVersion.Platform
+            switch ($platform) {
+                "Win32NT" {
+                    if ([System.Environment]::Is64BitOperatingSystem) {
+                        return "win-x64"
+                    }
+                    else {
+                        return "win-x86"
+                    }
                 }
-                else {
-                    return "win-x86"
+                default {
+                    throw "Unimplemented platform '$platform'"
+                }
+            }
+        }
+
+        $_runtimeIdentifier = GetRid
+
+        Write-Verbose "Determined current Runtime Identifier to be '$_runtimeIdentifier'"
+
+        $_files = @()
+
+        Write-Verbose "ParameterSetName is '$($PsCmdlet.ParameterSetName)', PackageType is '$PackageType' "
+        switch ($PsCmdlet.ParameterSetName) {
+            "FromReleaseVersion" {
+                $_files = Get-DotNetFileInfo -RuntimeIdentifier $_runtimeIdentifier `
+                    -ReleaseVersion $ReleaseVersion `
+                    -PackageType $PackageType `
+                    -Extension "exe"
+            }
+            "FromSdkVersion" {
+                $PackageType = "Sdk"
+                $_files = Get-DotNetFileInfo -RuntimeIdentifier $_runtimeIdentifier `
+                    -SdkVersion $SdkVersion `
+                    -PackageType $PackageType `
+                    -Extension "exe"
+
+            }
+            "FromDotNetReleaseInfo" {
+                $_files = @()
+                foreach ($_releaseInfo in $ReleaseInfo) {
+                    Write-Verbose "Provessing Release Info $($_releaseInfo.Version)"
+                    switch ($PackageType) {
+                        "Sdk" {
+                            $_files += $_releaseInfo.Sdk.Files `
+                            | Where-Object -FilterScript { $PSItem.Extension -eq "exe" } `
+                            | Where-Object -FilterScript { $PSItem.RuntimeIdentifier -eq $_runtimeIdentifier }
+                        }
+                        "Runtime" {
+                            $_files += $_releaseInfo.Runtime.Files `
+                            | Where-Object -FilterScript { $PSItem.Extension -eq "exe" } `
+                            | Where-Object -FilterScript { $PSItem.RuntimeIdentifier -eq $_runtimeIdentifier }
+                        }
+                        default {
+                            throw "Unexpected package type '$PackageType'"
+                        }
+                    }
                 }
             }
             default {
-                throw "Unimplemented platform '$platform'"
+                throw "Unexpected ParameterSetName '$($PsCmdlet.ParameterSetName)'"
+            }
+        }
+
+        $_count = ($_files | Measure-Object).Count
+
+        if ($_count -eq 0) {
+            throw "Failed to find a matching installer"
+        }
+
+        foreach ($_file in $_files) {
+
+            if (Test-DotNetInstallation -PackageType $PackageType -Version $_file.Version) {
+                Write-Warning ".NET $PackageType, version $($_file.Version) is already installed"
+            }
+            else {
+
+                Write-Verbose "Installing .NET $($_file.PackageType), version $($_file.Version)"
+                $_installerFile = Get-DotNetFile -FileInfo $_file
+                Start-DotNetInstaller -InstallerPath $_installerFile.FullName
+
+                Write-Verbose "Deleting temporary installer file '$($_installerFile.FullName)'"
+                try {
+                    Remove-Item -Path $_installerFile.FullName
+                }
+                catch {
+                    # Ignore errors
+                }
             }
         }
     }
 
-    $_runtimeIdentifier = GetRid
-
-    Write-Verbose "Determined current Runtime Identifier to be '$_runtimeIdentifier'"
-
-    $_files = @()
-
-    Write-Verbose "ParameterSetName is '$($PsCmdlet.ParameterSetName)', PackageType is '$PackageType' "
-    switch ($PsCmdlet.ParameterSetName) {
-        "FromReleaseVersion" {
-            $_files = Get-DotNetFileInfo -RuntimeIdentifier $_runtimeIdentifier `
-                -ReleaseVersion $ReleaseVersion `
-                -PackageType $PackageType `
-                -Extension "exe"
-        }
-        "FromSdkVersion" {
-            $PackageType = "Sdk"
-            $_files = Get-DotNetFileInfo -RuntimeIdentifier $_runtimeIdentifier `
-                -SdkVersion $SdkVersion `
-                -PackageType $PackageType `
-                -Extension "exe"
-
-        }
-        "FromDotNetReleaseInfo" {
-
-            switch ($PackageType) {
-                "Sdk" {
-                    $_files = $ReleaseInfo.Sdk.Files `
-                    | Where-Object -FilterScript { $PSItem.Extension -eq "exe" } `
-                    | Where-Object -FilterScript { $PSItem.RuntimeIdentifier -eq $_runtimeIdentifier }
-                }
-                "Runtime" {
-                    $_files = $ReleaseInfo.Runtime.Files `
-                    | Where-Object -FilterScript { $PSItem.Extension -eq "exe" } `
-                    | Where-Object -FilterScript { $PSItem.RuntimeIdentifier -eq $_runtimeIdentifier }
-                }
-                default {
-                    throw "Unexpected package type '$PackageType'"
-                }
-            }
-        }
-        default {
-            throw "Unexpected ParameterSetName '$($PsCmdlet.ParameterSetName)'"
-        }
-    }
-
-    $_count = ($_files | Measure-Object).Count
-
-    if ($_count -eq 0) {
-        throw "Failed to find a matching installer"
-    }
-    if ($_count -gt 1) {
-        throw "Found multiple installers matching the specified criteria"
-    }
-
-    if (Test-DotNetInstallation -PackageType $PackageType -Version $_files.Version) {
-        throw ".NET $PackageType, version $($_files.Version) is already installed"
-    }
-    else {
-
-        Write-Verbose "Installing .NET $($_files.PackageType), version $($_files.Version)"
-        $_installerFile = Get-DotNetFile -FileInfo $_files
-        Start-DotNetInstaller -InstallerPath $_installerFile.FullName
-
-        Write-Verbose "Deleting temporary installer file '$($_installerFile.FullName)'"
-        try {
-            Remove-Item -Path $_installerFile.FullName
-        }
-        catch {
-            # Ignore errors
-        }
-    }
+    END { }
 }

@@ -969,7 +969,7 @@ function Install-DotNet {
 
         [Parameter(Mandatory = $true, ParameterSetName = "FromSdkVersion")][string]$SdkVersion,
 
-        [Parameter(Mandatory = $true, ParameterSetName = "FromDotNetReleaseInfo")]
+        [Parameter(Mandatory = $true, ParameterSetName = "FromDotNetReleaseInfo", ValueFromPipeline = $true)]
         [ValidateNotNull()]
         [DotNetReleaseInfo]$ReleaseInfo
     )

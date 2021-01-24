@@ -341,7 +341,18 @@ function Get-DotNetFile {
                 throw "Output path '$outPath' already exists"
             }
             Write-Verbose "Downloading file '$($file.Name)' to '$outPath'"
-            Invoke-WebRequest -Uri $file.Url -OutFile $outPath -UseBasicParsing
+
+            $previousProgressPreference = $ProgressPreference
+            try {
+                # Disable progress bar for downloading the file because
+                # Invoke-WebRequest seems to be significantly faster at downloaded
+                # without progress
+                $ProgressPreference = 'SilentlyContinue'
+                Invoke-WebRequest -Uri $file.Url -OutFile $outPath -UseBasicParsing
+            }
+            finally {
+                $ProgressPreference = $previousProgressPreference
+            }
 
 
             Write-Progress -Id $progressActivityId `
@@ -561,7 +572,7 @@ function Get-DotNetInstallation {
     }
 
 
-    $dotNetCommand = Get-Command -Name "dotnet" -CommandType Application
+    $dotNetCommand = Get-Command -Name "dotnet" -CommandType Application -ErrorAction SilentlyContinue
     if (-not $dotNetCommand) {
         return
     }

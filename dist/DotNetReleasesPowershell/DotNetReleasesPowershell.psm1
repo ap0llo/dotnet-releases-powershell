@@ -341,7 +341,7 @@ function Get-DotNetFile {
                 throw "Output path '$outPath' already exists"
             }
             Write-Verbose "Downloading file '$($file.Name)' to '$outPath'"
-            Invoke-WebRequest -Uri $file.Url -OutFile $outPath
+            Invoke-WebRequest -Uri $file.Url -OutFile $outPath -UseBasicParsing
 
 
             Write-Progress -Id $progressActivityId `
@@ -363,7 +363,7 @@ function Get-DotNetFile {
 
             $completedFileCount += 1
         }
-        
+
         Write-Progress -Id 1 `
             -Activity $progressActivity `
             -Completed
@@ -686,7 +686,7 @@ function Get-DotNetReleaseChannel {
         [Parameter(Mandatory = $false)][DotNetSupportPhase]$SupportPhase
     )
 
-    $response = Invoke-WebRequest -Uri $ReleaseIndexUri
+    $response = Invoke-WebRequest -Uri $ReleaseIndexUri -UseBasicParsing
     $releaseIndex = $response.Content | ConvertFrom-Json
 
     foreach ($obj in $releaseIndex.'releases-index') {
@@ -868,7 +868,7 @@ function Get-DotNetReleaseInfo {
 
             Write-Verbose "Getting release infos for channel '$($channelInfo.ChannelVersion)'"
 
-            $response = Invoke-WebRequest -Uri $channelInfo.ReleasesJsonUri
+            $response = Invoke-WebRequest -Uri $channelInfo.ReleasesJsonUri -UseBasicParsing
             $releaseInfoJson = $response.Content | ConvertFrom-Json
 
             $latestRelease = $releaseInfoJson.'latest-release'

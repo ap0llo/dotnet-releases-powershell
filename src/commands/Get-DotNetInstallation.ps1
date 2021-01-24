@@ -24,7 +24,7 @@ function Get-DotNetInstallation {
     }
 
 
-    $dotNetCommand = Get-Command -Name "dotnet" -CommandType Application
+    $dotNetCommand = Get-Command -Name "dotnet" -CommandType Application -ErrorAction SilentlyContinue
     if (-not $dotNetCommand) {
         return
     }

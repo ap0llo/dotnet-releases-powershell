@@ -32,7 +32,7 @@ function Get-DotNetReleaseChannel {
         [Parameter(Mandatory = $false)][DotNetSupportPhase]$SupportPhase
     )
 
-    $response = Invoke-WebRequest -Uri $ReleaseIndexUri
+    $response = Invoke-WebRequest -Uri $ReleaseIndexUri -UseBasicParsing
     $releaseIndex = $response.Content | ConvertFrom-Json
 
     foreach ($obj in $releaseIndex.'releases-index') {

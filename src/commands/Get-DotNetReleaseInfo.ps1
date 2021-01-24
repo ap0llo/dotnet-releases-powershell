@@ -137,7 +137,7 @@ function Get-DotNetReleaseInfo {
 
             Write-Verbose "Getting release infos for channel '$($channelInfo.ChannelVersion)'"
 
-            $response = Invoke-WebRequest -Uri $channelInfo.ReleasesJsonUri
+            $response = Invoke-WebRequest -Uri $channelInfo.ReleasesJsonUri -UseBasicParsing
             $releaseInfoJson = $response.Content | ConvertFrom-Json
 
             $latestRelease = $releaseInfoJson.'latest-release'

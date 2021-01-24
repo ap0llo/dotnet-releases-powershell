@@ -158,7 +158,7 @@ function Get-DotNetFile {
                 throw "Output path '$outPath' already exists"
             }
             Write-Verbose "Downloading file '$($file.Name)' to '$outPath'"
-            Invoke-WebRequest -Uri $file.Url -OutFile $outPath
+            Invoke-WebRequest -Uri $file.Url -OutFile $outPath -UseBasicParsing
 
 
             Write-Progress -Id $progressActivityId `
@@ -180,7 +180,7 @@ function Get-DotNetFile {
 
             $completedFileCount += 1
         }
-        
+
         Write-Progress -Id 1 `
             -Activity $progressActivity `
             -Completed

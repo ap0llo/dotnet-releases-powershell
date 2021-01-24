@@ -12,7 +12,7 @@ BeforeAll {
 
     # Load all releases.json files
 
-    [PSObject]$releasesIndex = Invoke-WebRequest -Uri $ReleaseIndexUri -ErrorAction SilentlyContinue | ConvertFrom-Json
+    [PSObject]$releasesIndex = Invoke-WebRequest -Uri $ReleaseIndexUri -ErrorAction SilentlyContinue -UseBasicParsing | ConvertFrom-Json
 
     $releaseMetadatas = @()
     foreach ($releasesIndexEntry in $releasesIndex.'releases-index') {

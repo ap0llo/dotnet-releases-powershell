@@ -9,7 +9,7 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot "../src/variables.ps1")
 
-    $releasesIndexResponse = Invoke-WebRequest -Uri $ReleaseIndexUri -ErrorAction SilentlyContinue
+    $releasesIndexResponse = Invoke-WebRequest -Uri $ReleaseIndexUri -ErrorAction SilentlyContinue -UseBasicParsing
     [PSObject]$releasesIndex = $null
     try {
         $releasesIndex = $releasesIndexResponse | ConvertFrom-Json

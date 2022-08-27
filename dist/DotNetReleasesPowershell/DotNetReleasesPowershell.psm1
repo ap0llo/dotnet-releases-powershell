@@ -28,6 +28,8 @@ enum DotNetSupportPhase {
     Maintenance
     RC
     Current
+    GoLive
+    STS
 }
 
 class DotNetChannelInfo {
@@ -707,13 +709,20 @@ function Get-DotNetReleaseChannel {
             $eolDate = [DateTime]::Parse($obj.'eol-date')
         }
 
+        if ($obj.'support-phase' -eq "go-live") {
+            $parsedSupportPhase = [DotNetSupportPhase]::GoLive
+        }
+        else {
+            $parsedSupportPhase = [DotNetSupportPhase]$obj.'support-phase'
+        }
+
         [DotNetChannelInfo]$channelInfo = [DotNetChannelInfo]::new(
             $obj.'channel-version',
             $obj.'latest-release',
             [DateTime]::Parse($obj.'latest-release-date'),
             $obj.'releases.json',
             $eolDate,
-            [DotNetSupportPhase]$obj.'support-phase'
+            $parsedSupportPhase
         )
 
         # Skip non-matching results when ChannelVersion version was set
@@ -898,12 +907,21 @@ function Get-DotNetReleaseInfo {
                 $runtimeInfo = GetRuntimeReleaseInfo $thisReleaseVersion $releaseJson.'runtime'
                 $sdkInfo = GetSdkReleaseInfo $thisReleaseVersion $releaseJson.'sdk'
 
+
+                if ($releaseInfoJson.'support-phase' -eq "go-live") {
+                    $parsedSupportPhase = [DotNetSupportPhase]::GoLive
+                }
+                else {
+                    $parsedSupportPhase = [DotNetSupportPhase]$releaseInfoJson.'support-phase'
+                }
+
+
                 $releaseInfo = [DotNetReleaseInfo]::new(
                     $channelInfo.ChannelVersion,
                     $thisReleaseVersion,
                     [DateTime]::Parse($releaseJson.'release-date'),
                     $eolDate,
-                    [DotNetSupportPhase]$releaseInfoJson.'support-phase',
+                    $parsedSupportPhase,
                     $runtimeInfo,
                     $sdkInfo
                 )

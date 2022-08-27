@@ -42,13 +42,20 @@ function Get-DotNetReleaseChannel {
             $eolDate = [DateTime]::Parse($obj.'eol-date')
         }
 
+        if ($obj.'support-phase' -eq "go-live") {
+            $parsedSupportPhase = [DotNetSupportPhase]::GoLive
+        }
+        else {
+            $parsedSupportPhase = [DotNetSupportPhase]$obj.'support-phase'
+        }
+
         [DotNetChannelInfo]$channelInfo = [DotNetChannelInfo]::new(
             $obj.'channel-version',
             $obj.'latest-release',
             [DateTime]::Parse($obj.'latest-release-date'),
             $obj.'releases.json',
             $eolDate,
-            [DotNetSupportPhase]$obj.'support-phase'
+            $parsedSupportPhase
         )
 
         # Skip non-matching results when ChannelVersion version was set

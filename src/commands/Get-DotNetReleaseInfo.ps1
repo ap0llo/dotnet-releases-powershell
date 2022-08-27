@@ -156,12 +156,21 @@ function Get-DotNetReleaseInfo {
                 $runtimeInfo = GetRuntimeReleaseInfo $thisReleaseVersion $releaseJson.'runtime'
                 $sdkInfo = GetSdkReleaseInfo $thisReleaseVersion $releaseJson.'sdk'
 
+
+                if ($releaseInfoJson.'support-phase' -eq "go-live") {
+                    $parsedSupportPhase = [DotNetSupportPhase]::GoLive
+                }
+                else {
+                    $parsedSupportPhase = [DotNetSupportPhase]$releaseInfoJson.'support-phase'
+                }
+
+
                 $releaseInfo = [DotNetReleaseInfo]::new(
                     $channelInfo.ChannelVersion,
                     $thisReleaseVersion,
                     [DateTime]::Parse($releaseJson.'release-date'),
                     $eolDate,
-                    [DotNetSupportPhase]$releaseInfoJson.'support-phase',
+                    $parsedSupportPhase,
                     $runtimeInfo,
                     $sdkInfo
                 )

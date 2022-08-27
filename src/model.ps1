@@ -5,6 +5,8 @@ enum DotNetSupportPhase {
     Maintenance
     RC
     Current
+    GoLive
+    STS
 }
 
 class DotNetChannelInfo {

@@ -126,7 +126,6 @@ Describe "Get-DotNetReleaseChannel" {
         Assert-MockCalled Invoke-WebRequest -ParameterFilter { Test-ReleasesIndexUri $Uri } -Times 1
     }
 
-
     It "Returns filtered result when support phase is specified" {
 
         # ARRANGE
@@ -147,12 +146,38 @@ Describe "Get-DotNetReleaseChannel" {
     }
 
     It "A support-phase value of '<SupportPhase>' is correctly parsed" -TestCase @(
-        @{ SupportPhase = "Preview" }
-        @{ SupportPhase = "EOL" }
-        @{ SupportPhase = "LTS" }
-        @{ SupportPhase = "Maintenance" }
-        @{ SupportPhase = "RC" }
-        @{ SupportPhase = "Current" }
+        @{
+            SupportPhase          = "preview"
+            ExptectedSupportPhase = [DotNetSupportPhase]::Preview
+        }
+        @{
+            SupportPhase          = "eol"
+            ExptectedSupportPhase = [DotNetSupportPhase]::EOL
+        }
+        @{
+            SupportPhase          = "lts"
+            ExptectedSupportPhase = [DotNetSupportPhase]::LTS
+        }
+        @{
+            SupportPhase          = "maintenance"
+            ExptectedSupportPhase = [DotNetSupportPhase]::Maintenance
+        }
+        @{
+            SupportPhase          = "rc"
+            ExptectedSupportPhase = [DotNetSupportPhase]::RC
+        }
+        @{
+            SupportPhase          = "current"
+            ExptectedSupportPhase = [DotNetSupportPhase]::Current
+        }
+        @{
+            SupportPhase          = "go-live"
+            ExptectedSupportPhase = [DotNetSupportPhase]::GoLive
+        }
+        @{
+            SupportPhase          = "sts"
+            ExptectedSupportPhase = [DotNetSupportPhase]::STS
+        }
     ) {
 
         param($SupportPhase)
@@ -168,7 +193,7 @@ Describe "Get-DotNetReleaseChannel" {
         $channel = Get-DotNetReleaseChannel
 
         # ASSERT
-        $channel.SupportPhase | Should -Be $SupportPhase
+        $channel.SupportPhase | Should -Be $ExptectedSupportPhase
     }
 
 

@@ -149,69 +149,6 @@ Describe "Get-DotNetReleaseInfo" {
 
     Context "Output data" {
 
-        Context "SupportPhase" {
-
-            It "A support-phase value of '<SupportPhase>' is correctly parsed" -TestCase @(
-                @{ SupportPhase = "preview" }
-                @{ SupportPhase = "go-live" }
-                @{ SupportPhase = "active" }
-                @{ SupportPhase = "maintenance" }
-                @{ SupportPhase = "eol" }
-            ) {
-
-                param($SupportPhase)
-
-                # ARRANGE
-                Mock Invoke-WebRequest -Verifiable -ParameterFilter { Test-ReleasesIndexUri $Uri } {
-                    Get-ReleasesIndexResponse -Entries @(
-                        Get-ReleasesIndexEntry -ChannelVersion "1.0" -ReleasesJsonUrl "http://example.com/1.0/releases.json"
-                    )
-                }
-
-                Mock Invoke-WebRequest -Verifiable -ParameterFilter { Test-ReleasesJsonUri $Uri -ChannelVersion "1.0" } {
-                    Get-ReleasesJsonResponse `
-                        -ChannelVersion "1.0" `
-                        -SupportPhase $SupportPhase `
-                        -Entries @(Get-ReleasesJsonEntry)
-                }
-
-
-                # ACT
-                $release = Get-DotNetReleaseInfo -ChannelVersion "1.0"
-
-                # ASSERT
-                $release | Should -HaveCount 1
-                $release[0].SupportPhase | Should -Be (Get-DotNetSupportPhase $SupportPhase)
-            }
-
-
-            It "Throws if support-phase has unexpected value of '<InvalidSupportPhase>'" -TestCase @(        
-                @{InvalidSupportPhase = "not-a-support-phase" }
-            ) {
-
-                param($InvalidSupportPhase)
-
-                # ARRANGE
-                Mock Invoke-WebRequest -Verifiable -ParameterFilter { Test-ReleasesIndexUri $Uri } {
-                    Get-ReleasesIndexResponse -Entries @(
-                        Get-ReleasesIndexEntry -ChannelVersion "1.0" -ReleasesJsonUrl "http://example.com/1.0/releases.json"
-                    )
-                }
-
-                Mock Invoke-WebRequest -Verifiable -ParameterFilter { Test-ReleasesJsonUri $Uri -ChannelVersion "1.0" } {
-                    Get-ReleasesJsonResponse `
-                        -ChannelVersion "1.0" `
-                        -SupportPhase $InvalidSupportPhase `
-                        -Entries @(Get-ReleasesJsonEntry)
-                }
-
-
-                # ACT / ASSERT
-                { Get-DotNetReleaseInfo } | Should -Throw "Cannot parse value '$InvalidSupportPhase' as DotNetSupportPhase*"
-            }
-
-        }
-
         Context "'sdk' metadata" {
 
             It "Output includes the SDK metadata from the releases.json file" {

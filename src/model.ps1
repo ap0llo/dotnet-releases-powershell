@@ -37,25 +37,19 @@ class DotNetReleaseInfo {
     [ValidateNotNullOrEmpty()][string]$ChannelVersion
     [ValidateNotNullOrEmpty()][string]$Version
     [ValidateNotNullOrEmpty()][DateTime]$ReleaseDate
-    [Nullable[DateTime]]$EolDate
-    [ValidateNotNull()][DotNetSupportPhase]$SupportPhase
     [DotNetRuntimeReleaseInfo]$Runtime
     [DotNetSdkReleaseInfo]$Sdk
 
     DotNetReleaseInfo(
         [string]$ChannelVersion,
         [string]$Version,
-        [DateTime]$ReleaseDate,
-        [Nullable[DateTime]]$EolDate,
-        [DotNetSupportPhase]$SupportPhase,
+        [DateTime]$ReleaseDate,   
         [DotNetRuntimeReleaseInfo]$Runtime,
         [DotNetSdkReleaseInfo]$Sdk
     ) {
         $this.ChannelVersion = $ChannelVersion
         $this.Version = $Version
         $this.ReleaseDate = $ReleaseDate
-        $this.EolDate = $EolDate
-        $this.SupportPhase = $SupportPhase
         $this.Runtime = $Runtime
         $this.Sdk = $Sdk
     }

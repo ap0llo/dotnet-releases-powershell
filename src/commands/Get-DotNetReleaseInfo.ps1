@@ -142,11 +142,6 @@ function Get-DotNetReleaseInfo {
 
             $latestRelease = $releaseInfoJson.'latest-release'
 
-            $eolDate = $null
-            if ($releaseInfoJson.'eol-date') {
-                $eolDate = [DateTime]::Parse($releaseInfoJson.'eol-date')
-            }
-
             foreach ($releaseJson in $releaseInfoJson.'releases') {
 
                 $thisReleaseVersion = $releaseJson.'release-version'
@@ -157,13 +152,10 @@ function Get-DotNetReleaseInfo {
                 $sdkInfo = GetSdkReleaseInfo $thisReleaseVersion $releaseJson.'sdk'
 
 
-
                 $releaseInfo = [DotNetReleaseInfo]::new(
                     $channelInfo.ChannelVersion,
                     $thisReleaseVersion,
                     [DateTime]::Parse($releaseJson.'release-date'),
-                    $eolDate,
-                    (Get-DotNetSupportPhase $releaseInfoJson.'support-phase'),
                     $runtimeInfo,
                     $sdkInfo
                 )

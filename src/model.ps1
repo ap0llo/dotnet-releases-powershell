@@ -1,12 +1,9 @@
 enum DotNetSupportPhase {
     Preview
-    EOL
-    LTS
-    Maintenance
-    RC
-    Current
     GoLive
-    STS
+    Active
+    Maintenance
+    EOL
 }
 
 class DotNetChannelInfo {

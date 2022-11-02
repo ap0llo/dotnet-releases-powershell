@@ -167,7 +167,7 @@ Describe "releases.json" {
         }
 
         It "Value of property 'support-phase' is in [<KnownSupportPhases>]" -TestCases @(
-            @{ KnownSupportPhases = [DotNetSupportPhase].GetEnumValues() }
+            @{ KnownSupportPhases = [DotNetSupportPhase].GetEnumValues() | ForEach-Object { $value = $PSItem.ToString().ToLower(); if ($value -eq "GoLive") { $value = "go-live" } ; $value } }
         ) {
             param($KnownSupportPhases)
 
@@ -181,6 +181,8 @@ Describe "releases.json" {
     Context "'releases'" {
 
         It "releases.json exists for channel <ChannelVersion>" -TestCases @(
+            @{ ChannelVersion = "7.0" }    
+            @{ ChannelVersion = "6.0" }
             @{ ChannelVersion = "5.0" }
             @{ ChannelVersion = "3.1" }
             @{ ChannelVersion = "3.0" }

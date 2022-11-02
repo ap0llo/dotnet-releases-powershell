@@ -19,7 +19,7 @@ function Get-ReleasesIndexEntry {
         [Parameter(Mandatory = $false)][string]$ChannelVersion = "1.0",
         [Parameter(Mandatory = $false)][string]$LatestRelease = "1.0.1",
         [Parameter(Mandatory = $false)][string]$LatestReleaseDate = "2000-01-01",
-        [Parameter(Mandatory = $false)][string]$SupportPhase = "Current",
+        [Parameter(Mandatory = $false)][string]$SupportPhase = "active",
         [Parameter(Mandatory = $false)][string]$EolDate = $null,
         [Parameter(Mandatory = $false)][string]$ReleasesJsonUrl = "https.//example.com/1.0/releases.json"
     )
@@ -175,7 +175,7 @@ function Get-ReleasesJsonResponse {
 
     param(
         [Parameter(Mandatory = $false)][string]$ChannelVersion = "1.0",
-        [Parameter(Mandatory = $false)][string]$SupportPhase = "Current",
+        [Parameter(Mandatory = $false)][string]$SupportPhase = "active",
         [Parameter(Mandatory = $false)][string]$EolDate = $null,
         [Parameter(Mandatory = $false)][PSCustomObject[]]$Entries = $null
     )

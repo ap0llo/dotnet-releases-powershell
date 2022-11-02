@@ -51,7 +51,7 @@ Describe "Get-DotNetReleaseChannel" {
                 -ChannelVersion "5.0" `
                 -LatestRelease "5.0.0-rc.2" `
                 -LatestReleaseDate "2020-10-13" `
-                -SupportPhase "rc" `
+                -SupportPhase "preview" `
                 -ReleasesJsonUrl "https://example.com/dotnet/release-metadata/5.0/releases.json"
             Get-ReleasesIndexResponse -Entries $entry
         }
@@ -64,7 +64,7 @@ Describe "Get-DotNetReleaseChannel" {
         $releaseChannels[0].ChannelVersion | Should -BeExactly "5.0"
         $releaseChannels[0].LatestRelease | Should -BeExactly "5.0.0-rc.2"
         $releaseChannels[0].LatestReleaseDate | Should -BeExactly (Get-Date -Year 2020 -Month 10 -Day 13).Date
-        $releaseChannels[0].SupportPhase | Should -Be  "rc"
+        $releaseChannels[0].SupportPhase | Should -Be  "Preview"
         $releaseChannels[0].ReleasesJsonUri | Should -BeExactly "https://example.com/dotnet/release-metadata/5.0/releases.json"
         Assert-MockCalled Invoke-WebRequest -ParameterFilter { Test-ReleasesIndexUri $Uri } -Times 1
     }
@@ -132,12 +132,12 @@ Describe "Get-DotNetReleaseChannel" {
         Mock Invoke-WebRequest -ParameterFilter { Test-ReleasesIndexUri $Uri } -Verifiable {
             Get-ReleasesIndexResponse -Entries @(
                 (Get-ReleasesIndexEntry -ChannelVersion "1.0" -SupportPhase "eol"),
-                (Get-ReleasesIndexEntry -ChannelVersion "2.0" -SupportPhase "lts")
+                (Get-ReleasesIndexEntry -ChannelVersion "2.0" -SupportPhase "active")
             )
         }
 
         # ACT
-        $releaseChannels = Get-DotNetReleaseChannel -SupportPhase LTS
+        $releaseChannels = Get-DotNetReleaseChannel -SupportPhase Active
 
         # ASSERT
         $releaseChannels | Should -HaveCount 1
@@ -145,61 +145,7 @@ Describe "Get-DotNetReleaseChannel" {
         Assert-MockCalled Invoke-WebRequest -ParameterFilter { Test-ReleasesIndexUri $Uri } -Times 1
     }
 
-    It "A support-phase value of '<SupportPhase>' is correctly parsed" -TestCase @(
-        @{
-            SupportPhase          = "preview"
-            ExptectedSupportPhase = [DotNetSupportPhase]::Preview
-        }
-        @{
-            SupportPhase          = "eol"
-            ExptectedSupportPhase = [DotNetSupportPhase]::EOL
-        }
-        @{
-            SupportPhase          = "lts"
-            ExptectedSupportPhase = [DotNetSupportPhase]::LTS
-        }
-        @{
-            SupportPhase          = "maintenance"
-            ExptectedSupportPhase = [DotNetSupportPhase]::Maintenance
-        }
-        @{
-            SupportPhase          = "rc"
-            ExptectedSupportPhase = [DotNetSupportPhase]::RC
-        }
-        @{
-            SupportPhase          = "current"
-            ExptectedSupportPhase = [DotNetSupportPhase]::Current
-        }
-        @{
-            SupportPhase          = "go-live"
-            ExptectedSupportPhase = [DotNetSupportPhase]::GoLive
-        }
-        @{
-            SupportPhase          = "sts"
-            ExptectedSupportPhase = [DotNetSupportPhase]::STS
-        }
-    ) {
-
-        param($SupportPhase)
-
-        # ARRANGE
-        Mock Invoke-WebRequest -ParameterFilter { Test-ReleasesIndexUri $Uri } -Verifiable {
-            Get-ReleasesIndexResponse -Entries @(
-                (Get-ReleasesIndexEntry -ChannelVersion "1.0" -SupportPhase $SupportPhase.ToString())
-            )
-        }
-
-        # ACT
-        $channel = Get-DotNetReleaseChannel
-
-        # ASSERT
-        $channel.SupportPhase | Should -Be $ExptectedSupportPhase
-    }
-
-
     It "Throws if support-phase has unexpected value of '<InvalidSupportPhase>'" -TestCase @(
-        @{InvalidSupportPhase = "" }
-        @{InvalidSupportPhase = " " }
         @{InvalidSupportPhase = "not-a-support-phase" }
     ) {
 
@@ -213,6 +159,6 @@ Describe "Get-DotNetReleaseChannel" {
         }
 
         # ACT / ASSERT
-        { Get-DotNetReleaseChannel } | Should -Throw "Cannot convert value `"$InvalidSupportPhase`" to type `"DotNetSupportPhase`"*"
+        { Get-DotNetReleaseChannel } | Should -Throw "Cannot parse value '$InvalidSupportPhase' as DotNetSupportPhase"
     }
 }

@@ -152,12 +152,11 @@ Describe "Get-DotNetReleaseInfo" {
         Context "SupportPhase" {
 
             It "A support-phase value of '<SupportPhase>' is correctly parsed" -TestCase @(
-                @{ SupportPhase = "Preview" }
-                @{ SupportPhase = "EOL" }
-                @{ SupportPhase = "LTS" }
-                @{ SupportPhase = "Maintenance" }
-                @{ SupportPhase = "RC" }
-                @{ SupportPhase = "Current" }
+                @{ SupportPhase = "preview" }
+                @{ SupportPhase = "go-live" }
+                @{ SupportPhase = "active" }
+                @{ SupportPhase = "maintenance" }
+                @{ SupportPhase = "eol" }
             ) {
 
                 param($SupportPhase)
@@ -182,13 +181,11 @@ Describe "Get-DotNetReleaseInfo" {
 
                 # ASSERT
                 $release | Should -HaveCount 1
-                $release[0].SupportPhase | Should -Be $SupportPhase
+                $release[0].SupportPhase | Should -Be (Get-DotNetSupportPhase $SupportPhase)
             }
 
 
-            It "Throws if support-phase has unexpected value of '<InvalidSupportPhase>'" -TestCase @(
-                @{InvalidSupportPhase = "" }
-                @{InvalidSupportPhase = " " }
+            It "Throws if support-phase has unexpected value of '<InvalidSupportPhase>'" -TestCase @(        
                 @{InvalidSupportPhase = "not-a-support-phase" }
             ) {
 
@@ -210,7 +207,7 @@ Describe "Get-DotNetReleaseInfo" {
 
 
                 # ACT / ASSERT
-                { Get-DotNetReleaseInfo } | Should -Throw "Cannot convert value `"$InvalidSupportPhase`" to type `"DotNetSupportPhase`"*"
+                { Get-DotNetReleaseInfo } | Should -Throw "Cannot parse value '$InvalidSupportPhase' as DotNetSupportPhase*"
             }
 
         }

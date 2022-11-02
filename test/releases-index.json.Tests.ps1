@@ -119,7 +119,7 @@ Describe "releases-index.json" {
         }
 
         It "Property 'support-phase' is in [<KnownSupportPhases>]" -TestCases @(
-            @{ KnownSupportPhases = [DotNetSupportPhase].GetEnumValues() }
+            @{ KnownSupportPhases = [DotNetSupportPhase].GetEnumValues() | ForEach-Object { $value = $PSItem.ToString().ToLower(); if ($value -eq "GoLive") { $value = "go-live" } ; $value } }
         ) {
             param($KnownSupportPhases)
 

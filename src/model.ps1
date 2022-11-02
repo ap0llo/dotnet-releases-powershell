@@ -6,6 +6,11 @@ enum DotNetSupportPhase {
     EOL
 }
 
+enum DotNetReleaseType {
+    STS
+    LTS
+}
+
 class DotNetChannelInfo {
 
     [ValidateNotNullOrEmpty()][string]$ChannelVersion
@@ -14,6 +19,7 @@ class DotNetChannelInfo {
     [ValidateNotNull()][Uri]$ReleasesJsonUri
     [Nullable[DateTime]]$EolDate
     [ValidateNotNull()][DotNetSupportPhase]$SupportPhase
+    [ValidateNotNull()][DotNetReleaseType]$ReleaseType
 
     DotNetChannelInfo(
         [string]$ChannelVersion,
@@ -21,7 +27,8 @@ class DotNetChannelInfo {
         [DateTime]$LatestReleaseDate,
         [Uri]$ReleasesJsonUri,
         [Nullable[DateTime]]$EolDate,
-        [DotNetSupportPhase]$SupportPhase
+        [DotNetSupportPhase]$SupportPhase,
+        [DotNetReleaseType]$ReleaseType
     ) {
         $this.ChannelVersion = $ChannelVersion
         $this.LatestRelease = $LatestRelease
@@ -29,6 +36,7 @@ class DotNetChannelInfo {
         $this.ReleasesJsonUri = $ReleasesJsonUri
         $this.EolDate = $EolDate
         $this.SupportPhase = $SupportPhase
+        $this.ReleaseType = $ReleaseType
     }
 }
 

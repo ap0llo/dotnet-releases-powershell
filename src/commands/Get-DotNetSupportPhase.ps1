@@ -2,7 +2,7 @@
 .SYNOPSIS
     Convert the string-representation of a support-phase to a DotNetSupportPhase enum value
 .PARAMETER SupportPhase
-    The string-representation of a support-phase name to the corresponding DotNetSupportPhase enum value
+    The string-representation of a support-phase name
 #>
 function Get-DotNetSupportPhase {
 

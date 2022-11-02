@@ -48,7 +48,8 @@ function Get-DotNetReleaseChannel {
             [DateTime]::Parse($obj.'latest-release-date'),
             $obj.'releases.json',
             $eolDate,
-            (Get-DotNetSupportPhase $obj.'support-phase')
+            (Get-DotNetSupportPhase $obj.'support-phase'),
+            (Get-DotNetReleaseType $obj.'release-type')
         )
 
         # Skip non-matching results when ChannelVersion version was set

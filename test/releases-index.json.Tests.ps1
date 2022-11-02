@@ -77,6 +77,7 @@ Describe "releases-index.json" {
             @{ PropertyName = 'latest-release-date' }
             @{ PropertyName = 'releases.json' }
             @{ PropertyName = 'support-phase' }
+            @{ PropertyName = 'release-type' }
         ) {
             param($PropertyName)
 
@@ -92,6 +93,7 @@ Describe "releases-index.json" {
             @{ PropertyName = 'latest-release-date' }
             @{ PropertyName = 'releases.json' }
             @{ PropertyName = 'support-phase' }
+            @{ PropertyName = 'release-type' }
         ) {
             param($PropertyName)
 
@@ -126,6 +128,17 @@ Describe "releases-index.json" {
             Assert-DotnetReleaseChannel {
                 param($channel)
                 $channel.'support-phase' | Should -BeIn $KnownSupportPhases
+            }
+        }
+
+        It "Property 'release-type' is in [<KnownReleaseTypes>]" -TestCases @(
+            @{ KnownReleaseTypes = [DotNetReleaseType].GetEnumValues() | ForEach-Object { $PSItem.ToString().ToLower() } }
+        ) {
+            param($KnownReleaseTypes)
+
+            Assert-DotnetReleaseChannel {
+                param($channel)
+                $channel.'release-type' | Should -BeIn $KnownReleaseTypes
             }
         }
 

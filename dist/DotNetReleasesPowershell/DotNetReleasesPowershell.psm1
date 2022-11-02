@@ -23,13 +23,15 @@ $ReleaseIndexUri = "https://dotnetcli.blob.core.windows.net/dotnet/release-metad
 
 enum DotNetSupportPhase {
     Preview
-    EOL
-    LTS
-    Maintenance
-    RC
-    Current
     GoLive
+    Active
+    Maintenance
+    EOL
+}
+
+enum DotNetReleaseType {
     STS
+    LTS
 }
 
 class DotNetChannelInfo {
@@ -40,6 +42,7 @@ class DotNetChannelInfo {
     [ValidateNotNull()][Uri]$ReleasesJsonUri
     [Nullable[DateTime]]$EolDate
     [ValidateNotNull()][DotNetSupportPhase]$SupportPhase
+    [ValidateNotNull()][DotNetReleaseType]$ReleaseType
 
     DotNetChannelInfo(
         [string]$ChannelVersion,
@@ -47,7 +50,8 @@ class DotNetChannelInfo {
         [DateTime]$LatestReleaseDate,
         [Uri]$ReleasesJsonUri,
         [Nullable[DateTime]]$EolDate,
-        [DotNetSupportPhase]$SupportPhase
+        [DotNetSupportPhase]$SupportPhase,
+        [DotNetReleaseType]$ReleaseType
     ) {
         $this.ChannelVersion = $ChannelVersion
         $this.LatestRelease = $LatestRelease
@@ -55,6 +59,7 @@ class DotNetChannelInfo {
         $this.ReleasesJsonUri = $ReleasesJsonUri
         $this.EolDate = $EolDate
         $this.SupportPhase = $SupportPhase
+        $this.ReleaseType = $ReleaseType
     }
 }
 
@@ -63,25 +68,19 @@ class DotNetReleaseInfo {
     [ValidateNotNullOrEmpty()][string]$ChannelVersion
     [ValidateNotNullOrEmpty()][string]$Version
     [ValidateNotNullOrEmpty()][DateTime]$ReleaseDate
-    [Nullable[DateTime]]$EolDate
-    [ValidateNotNull()][DotNetSupportPhase]$SupportPhase
     [DotNetRuntimeReleaseInfo]$Runtime
     [DotNetSdkReleaseInfo]$Sdk
 
     DotNetReleaseInfo(
         [string]$ChannelVersion,
         [string]$Version,
-        [DateTime]$ReleaseDate,
-        [Nullable[DateTime]]$EolDate,
-        [DotNetSupportPhase]$SupportPhase,
+        [DateTime]$ReleaseDate,   
         [DotNetRuntimeReleaseInfo]$Runtime,
         [DotNetSdkReleaseInfo]$Sdk
     ) {
         $this.ChannelVersion = $ChannelVersion
         $this.Version = $Version
         $this.ReleaseDate = $ReleaseDate
-        $this.EolDate = $EolDate
-        $this.SupportPhase = $SupportPhase
         $this.Runtime = $Runtime
         $this.Sdk = $Sdk
     }
@@ -709,20 +708,14 @@ function Get-DotNetReleaseChannel {
             $eolDate = [DateTime]::Parse($obj.'eol-date')
         }
 
-        if ($obj.'support-phase' -eq "go-live") {
-            $parsedSupportPhase = [DotNetSupportPhase]::GoLive
-        }
-        else {
-            $parsedSupportPhase = [DotNetSupportPhase]$obj.'support-phase'
-        }
-
         [DotNetChannelInfo]$channelInfo = [DotNetChannelInfo]::new(
             $obj.'channel-version',
             $obj.'latest-release',
             [DateTime]::Parse($obj.'latest-release-date'),
             $obj.'releases.json',
             $eolDate,
-            $parsedSupportPhase
+            (Get-DotNetSupportPhase $obj.'support-phase'),
+            (Get-DotNetReleaseType $obj.'release-type')
         )
 
         # Skip non-matching results when ChannelVersion version was set
@@ -893,11 +886,6 @@ function Get-DotNetReleaseInfo {
 
             $latestRelease = $releaseInfoJson.'latest-release'
 
-            $eolDate = $null
-            if ($releaseInfoJson.'eol-date') {
-                $eolDate = [DateTime]::Parse($releaseInfoJson.'eol-date')
-            }
-
             foreach ($releaseJson in $releaseInfoJson.'releases') {
 
                 $thisReleaseVersion = $releaseJson.'release-version'
@@ -908,20 +896,10 @@ function Get-DotNetReleaseInfo {
                 $sdkInfo = GetSdkReleaseInfo $thisReleaseVersion $releaseJson.'sdk'
 
 
-                if ($releaseInfoJson.'support-phase' -eq "go-live") {
-                    $parsedSupportPhase = [DotNetSupportPhase]::GoLive
-                }
-                else {
-                    $parsedSupportPhase = [DotNetSupportPhase]$releaseInfoJson.'support-phase'
-                }
-
-
                 $releaseInfo = [DotNetReleaseInfo]::new(
                     $channelInfo.ChannelVersion,
                     $thisReleaseVersion,
                     [DateTime]::Parse($releaseJson.'release-date'),
-                    $eolDate,
-                    $parsedSupportPhase,
                     $runtimeInfo,
                     $sdkInfo
                 )
@@ -951,6 +929,103 @@ function Get-DotNetReleaseInfo {
 
 # --------------------------------------------------
 # END 'Get-DotNetReleaseInfo.ps1'
+# --------------------------------------------------
+
+
+# --------------------------------------------------
+# BEGIN 'Get-DotNetReleaseType.ps1'
+# --------------------------------------------------
+
+<#
+.SYNOPSIS
+    Converts the string-representation of a release type to a DotNetReleaseType enum value
+.PARAMETER SupportPhase
+    The string-representation of a release-type name
+#>
+function Get-DotNetReleaseType {
+
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $false)]        
+        [string]
+        $ReleaseType
+    )
+
+    if(-not $ReleaseType) {
+        foreach($value in [DotNetReleaseType].GetEnumValues()) {
+            Write-Output $value
+        }        
+        return
+    }
+
+    switch ($ReleaseType) {
+        "sts" {
+            return [DotNetReleaseType]::STS
+        }        
+        "lts" {
+            return [DotNetReleaseType]::LTS
+        }       
+        Default {
+            throw "Cannot parse value '$ReleaseType' as DotNetReleaseType"
+        }
+    }
+}
+
+# --------------------------------------------------
+# END 'Get-DotNetReleaseType.ps1'
+# --------------------------------------------------
+
+
+# --------------------------------------------------
+# BEGIN 'Get-DotNetSupportPhase.ps1'
+# --------------------------------------------------
+
+<#
+.SYNOPSIS
+    Convert the string-representation of a support-phase to a DotNetSupportPhase enum value
+.PARAMETER SupportPhase
+    The string-representation of a support-phase name
+#>
+function Get-DotNetSupportPhase {
+
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $false)]        
+        [string]
+        $SupportPhase
+    )
+
+    if(-not $SupportPhase) {
+        foreach($value in [DotNetSupportPhase].GetEnumValues()) {
+            Write-Output $value
+        }        
+        return
+    }
+
+    switch ($supportPhase) {
+        "preview" {
+            return [DotNetSupportPhase]::Preview
+        }        
+        "go-live" {
+            return [DotNetSupportPhase]::GoLive
+        }
+        "active" {
+            return [DotNetSupportPhase]::Active
+        }
+        "maintenance" {
+            return [DotNetSupportPhase]::Maintenance
+        }
+        "eol" {
+            return [DotNetSupportPhase]::EOL
+        }
+        Default {
+            throw "Cannot parse value '$supportPhase' as DotNetSupportPhase"
+        }
+    }
+}
+
+# --------------------------------------------------
+# END 'Get-DotNetSupportPhase.ps1'
 # --------------------------------------------------
 
 
